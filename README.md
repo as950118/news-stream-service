@@ -353,8 +353,17 @@ docker-compose -f docker-compose.prod.yml up -d
 - 향후 AWS SQS 전환을 고려한 인터페이스 설계
 - 큐 상태 확인 및 제어 API
 
+### ✅ Feature 5: WebSocket (실시간 통신)
+- WebSocket 설정 및 STOMP 메시지 브로커 구성
+- WebSocket 이벤트 핸들러 (연결, 해제, 구독 이벤트)
+- 뉴스 스트림 서비스 (실시간 뉴스 브로드캐스트)
+- WebSocket 연결 관리 및 세션 관리
+- WebSocket 인증 인터셉터 (JWT 토큰 검증)
+- WebSocket 메트릭 수집 및 모니터링
+- WebSocket 상태 확인 API
+- WebSocket 컨트롤러 (메시지 처리)
+
 ### 🔄 다음 구현 예정 기능
-- Feature 5: WebSocket (실시간 통신)
 - Feature 6: News Service (뉴스 서비스)
 - Feature 7: REST API (REST API 구현)
 - Feature 8: Monitoring (모니터링)

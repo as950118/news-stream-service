@@ -1,5 +1,6 @@
 package com.news.stream.queue;
 
+import com.news.stream.service.NewsStreamService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 public class NewsMessageConsumer {
     
     private final MessageQueue<NewsMessage> messageQueue;
+    private final NewsStreamService newsStreamService;
     private final Logger logger = LoggerFactory.getLogger(NewsMessageConsumer.class);
     
     @Value("${queue.poll-timeout:1000}")
@@ -26,9 +28,11 @@ public class NewsMessageConsumer {
      * 생성자
      * 
      * @param messageQueue 메시지 큐
+     * @param newsStreamService 뉴스 스트림 서비스
      */
-    public NewsMessageConsumer(MessageQueue<NewsMessage> messageQueue) {
+    public NewsMessageConsumer(MessageQueue<NewsMessage> messageQueue, NewsStreamService newsStreamService) {
         this.messageQueue = messageQueue;
+        this.newsStreamService = newsStreamService;
     }
     
     /**
@@ -93,8 +97,12 @@ public class NewsMessageConsumer {
      */
     private void handleNewsCreated(NewsMessage message) {
         logger.info("뉴스 생성 처리: {}", message.newsId());
-        // TODO: WebSocket을 통해 뉴스 브로드캐스트 구현
-        // newsStreamService.broadcastNews(message.newsId());
+        try {
+            newsStreamService.broadcastNews(message.newsId());
+            logger.info("뉴스 생성 브로드캐스트 완료: {}", message.newsId());
+        } catch (Exception e) {
+            logger.error("뉴스 생성 브로드캐스트 실패: {}", message.newsId(), e);
+        }
     }
     
     /**
@@ -104,8 +112,12 @@ public class NewsMessageConsumer {
      */
     private void handleNewsUpdated(NewsMessage message) {
         logger.info("뉴스 수정 처리: {}", message.newsId());
-        // TODO: WebSocket을 통해 뉴스 업데이트 브로드캐스트 구현
-        // newsStreamService.broadcastNewsUpdate(message.newsId());
+        try {
+            newsStreamService.broadcastNewsUpdate(message.newsId());
+            logger.info("뉴스 수정 브로드캐스트 완료: {}", message.newsId());
+        } catch (Exception e) {
+            logger.error("뉴스 수정 브로드캐스트 실패: {}", message.newsId(), e);
+        }
     }
     
     /**
@@ -115,8 +127,12 @@ public class NewsMessageConsumer {
      */
     private void handleNewsDeleted(NewsMessage message) {
         logger.info("뉴스 삭제 처리: {}", message.newsId());
-        // TODO: WebSocket을 통해 뉴스 삭제 브로드캐스트 구현
-        // newsStreamService.broadcastNewsDeletion(message.newsId());
+        try {
+            newsStreamService.broadcastNewsDeletion(message.newsId());
+            logger.info("뉴스 삭제 브로드캐스트 완료: {}", message.newsId());
+        } catch (Exception e) {
+            logger.error("뉴스 삭제 브로드캐스트 실패: {}", message.newsId(), e);
+        }
     }
     
     /**

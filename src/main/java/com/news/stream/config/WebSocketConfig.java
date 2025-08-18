@@ -7,6 +7,7 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 
 /**
  * WebSocket 설정 클래스
@@ -46,6 +47,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // SockJS를 사용하지 않는 WebSocket 연결
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*");
+    }
+
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registration) {
+        // 메시지 크기 제한 설정
+        registration.setMessageSizeLimit(64 * 1024)      // 64KB
+                   .setSendBufferSizeLimit(512 * 1024)   // 512KB
+                   .setSendTimeLimit(20000);             // 20초
     }
 
     public void configureClientInboundMessageProcessing(ChannelRegistration registration) {

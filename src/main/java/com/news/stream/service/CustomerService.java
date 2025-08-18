@@ -2,6 +2,8 @@ package com.news.stream.service;
 
 import com.news.stream.model.Customer;
 import com.news.stream.repository.CustomerRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,7 @@ import java.util.UUID;
 public class CustomerService {
     
     private final CustomerRepository customerRepository;
+    private final Logger logger = LoggerFactory.getLogger(CustomerService.class);
     
     public CustomerService(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
@@ -83,6 +86,22 @@ public class CustomerService {
             return customerRepository.save(customer);
         }
         throw new RuntimeException("Customer not found with id: " + customerId);
+    }
+    
+    /**
+     * 세션 ID로 고객사의 연결 정보를 제거합니다.
+     * 
+     * @param sessionId WebSocket 세션 ID
+     */
+    public void removeConnectionIdBySessionId(String sessionId) {
+        Optional<Customer> customerOpt = findByConnectionId(sessionId);
+        if (customerOpt.isPresent()) {
+            Customer customer = customerOpt.get();
+            customer.setConnectionId(null);
+            customer.setUpdatedAt(LocalDateTime.now());
+            customerRepository.save(customer);
+            logger.info("고객사 {}의 연결 정보가 제거되었습니다: {}", customer.getId(), sessionId);
+        }
     }
     
     public Customer save(Customer customer) {
