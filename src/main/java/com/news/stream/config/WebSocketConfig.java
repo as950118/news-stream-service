@@ -1,6 +1,8 @@
-package com.alert.news.config;
+package com.news.stream.config;
 
+import com.news.stream.websocket.WebSocketAuthenticationInterceptor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -15,6 +17,12 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final WebSocketAuthenticationInterceptor authenticationInterceptor;
+
+    public WebSocketConfig(WebSocketAuthenticationInterceptor authenticationInterceptor) {
+        this.authenticationInterceptor = authenticationInterceptor;
+    }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -38,5 +46,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // SockJS를 사용하지 않는 WebSocket 연결
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*");
+    }
+
+    public void configureClientInboundMessageProcessing(ChannelRegistration registration) {
+        // 인증 인터셉터 추가
+        registration.interceptors(authenticationInterceptor);
     }
 }

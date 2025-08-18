@@ -49,7 +49,17 @@ public class CustomerService {
         return customerRepository.findByIsActiveTrue();
     }
     
-    public boolean isConnectionAvailable(String connectionId) {
+    public boolean isConnectionAvailable(String customerId) {
+        Optional<Customer> customer = findById(customerId);
+        if (customer.isEmpty()) {
+            return false;
+        }
+        
+        // 고객사가 이미 연결되어 있으면 false
+        return customer.get().getConnectionId() == null;
+    }
+    
+    public boolean isConnectionIdAvailable(String connectionId) {
         return !customerRepository.existsByConnectionId(connectionId);
     }
     

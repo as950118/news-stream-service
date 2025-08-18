@@ -62,6 +62,15 @@ management:
       prometheus:
         enabled: true
 
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:your-256-bit-secret-key-here-make-it-long-enough-for-security}
+  expiration-hours: ${JWT_EXPIRATION_HOURS:24}
+
+# 고객사 설정
+customer:
+  max-connections-per-customer: ${MAX_CONNECTIONS_PER_CUSTOMER:1}
+
 logging:
   level:
     com.news.stream: DEBUG
