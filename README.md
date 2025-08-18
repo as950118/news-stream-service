@@ -104,7 +104,7 @@ news-stream-service/
 ├── src/
 │   ├── main/
 │   │   ├── java/
-│   │   │   └── com/alert/news/
+│   │   │   └── com/news/stream/
 │   │   │       ├── config/          # 설정 클래스
 │   │   │       ├── controller/      # REST API 컨트롤러
 │   │   │       ├── websocket/       # WebSocket 핸들러 및 메시지 처리
