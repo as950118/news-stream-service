@@ -77,6 +77,20 @@ queue:
   consumer-threads: ${QUEUE_CONSUMER_THREADS:2}
   poll-timeout: ${QUEUE_POLL_TIMEOUT:1000}
 
+# 뉴스 서비스 설정
+news:
+  batch:
+    size: ${NEWS_BATCH_SIZE:100}
+    delay: ${NEWS_BATCH_DELAY:1000}
+    consumer-threads: ${NEWS_BATCH_CONSUMER_THREADS:2}
+    queue-capacity: ${NEWS_BATCH_QUEUE_CAPACITY:100}
+  schedule:
+    initial-delay: ${NEWS_SCHEDULE_INITIAL_DELAY:60000}
+    fixed-delay: ${NEWS_SCHEDULE_FIXED_DELAY:300000}
+  retry:
+    max-attempts: ${NEWS_RETRY_MAX_ATTEMPTS:3}
+    delay: ${NEWS_RETRY_DELAY:5000}
+
 # WebSocket 설정
 websocket:
   endpoint: /ws

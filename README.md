@@ -363,8 +363,16 @@ docker-compose -f docker-compose.prod.yml up -d
 - WebSocket 상태 확인 API
 - WebSocket 컨트롤러 (메시지 처리)
 
+### ✅ Feature 6: News Service (뉴스 서비스)
+- 뉴스 스트림 통합 서비스 (메시지 큐와 WebSocket 연동)
+- 뉴스 배치 처리 서비스 (대량 뉴스 처리 최적화)
+- 뉴스 스케줄링 서비스 (정기적 뉴스 처리)
+- 뉴스 처리 상태 관리 (처리 상태 추적)
+- 뉴스 재처리 서비스 (실패한 뉴스 재처리)
+- 뉴스 처리 성능 모니터링 (Micrometer 메트릭)
+- 비동기 작업 설정 (TaskExecutor 구성)
+
 ### 🔄 다음 구현 예정 기능
-- Feature 6: News Service (뉴스 서비스)
 - Feature 7: REST API (REST API 구현)
 - Feature 8: Monitoring (모니터링)
 - Feature 9: Testing (테스트)
