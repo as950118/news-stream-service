@@ -1,4 +1,4 @@
-package com.alert.news;
+package com.news.stream;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

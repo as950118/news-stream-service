@@ -62,7 +62,7 @@ WebSocket, 메시지 큐, 실시간 통신 등 백엔드 개발의 핵심 기술
 ### Prerequisites
 - Java 21+ (Virtual Threads 지원)
 - Docker & Docker Compose
-- gradle 8.5+
+- gradle 9+
 
 ### 설치 및 실행
 
@@ -121,7 +121,8 @@ news-stream-service/
 │   └── test/                        # 테스트 코드
 ├── docker-compose.yml               # Docker 환경 설정
 ├── Dockerfile                       # 애플리케이션 Docker 이미지
-└── gradle.build                     # Gradle 의존성 관리
+├── build.gradle                     # Gradle 의존성 관리
+└── settings.gradle                  # Gradle 프로젝트 설정
 ```
 
 ## 🔌 API 엔드포인트

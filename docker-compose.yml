@@ -6,9 +6,9 @@ services:
     image: postgres:15-alpine
     container_name: news-stream-postgres
     environment:
-      POSTGRES_DB: news_stream
-      POSTGRES_USER: news_user
-      POSTGRES_PASSWORD: news_password
+      POSTGRES_DB: alert_news
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
     volumes:
@@ -17,7 +17,7 @@ services:
     networks:
       - news-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U news_user -d news_stream"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d alert_news"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -46,9 +46,9 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/news_stream
-      SPRING_DATASOURCE_USERNAME: news_user
-      SPRING_DATASOURCE_PASSWORD: news_password
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/alert_news
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
     depends_on:
