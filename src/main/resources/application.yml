@@ -71,9 +71,16 @@ jwt:
 customer:
   max-connections-per-customer: ${MAX_CONNECTIONS_PER_CUSTOMER:1}
 
+# 큐 설정
+queue:
+  capacity: ${QUEUE_CAPACITY:1000}
+  consumer-threads: ${QUEUE_CONSUMER_THREADS:2}
+  poll-timeout: ${QUEUE_POLL_TIMEOUT:1000}
+
 logging:
   level:
     com.news.stream: DEBUG
+    com.news.stream.queue: DEBUG
     org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE

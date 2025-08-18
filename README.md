@@ -136,6 +136,12 @@ news-stream-service/
 - `/ws/news` - 뉴스 실시간 전송을 위한 WebSocket 연결
 - **연결 시**: JWT 토큰을 통해 인증 및 연결 제한
 - **메시지 형식**: JSON 형태의 뉴스 데이터
+
+### 큐 관련 API
+- `GET /api/v1/queue/status` - 큐 상태 확인
+- `GET /api/v1/queue/stats` - 큐 통계 정보
+- `POST /api/v1/queue/test-message` - 테스트 메시지 전송
+- `POST /api/v1/queue/clear` - 큐 비우기
 ```json
 {
   "id": "a1b2c3",
@@ -177,10 +183,12 @@ news-stream-service/
 ## 🔄 메시지 처리 흐름
 
 1. **뉴스 ID 수신**: 내부 큐(LinkedBlockingQueue)에서 뉴스 ID 수신
-2. **뉴스 조회**: 데이터베이스에서 해당 ID의 번역된 뉴스 조회
-3. **고객사 확인**: 구독 중인 고객사 목록 확인
-4. **실시간 전송**: WebSocket을 통해 각 고객사에게 뉴스 전송
-5. **예외 처리**: 각 단계별 예외 상황 로깅 및 처리
+2. **메시지 처리**: Producer-Consumer 패턴으로 뉴스 메시지 처리
+3. **뉴스 조회**: 데이터베이스에서 해당 ID의 번역된 뉴스 조회
+4. **고객사 확인**: 구독 중인 고객사 목록 확인
+5. **실시간 전송**: WebSocket을 통해 각 고객사에게 뉴스 전송
+6. **예외 처리**: 각 단계별 예외 상황 로깅 및 처리
+7. **모니터링**: 큐 상태 및 메트릭 실시간 수집
 
 ## 🔐 인증 시스템
 
@@ -222,7 +230,11 @@ news-stream-service/
 - **Prometheus Metrics**: `http://localhost:8080/actuator/prometheus`
 - **Application Metrics**: `http://localhost:8080/actuator/metrics`
 - **WebSocket Metrics**: `http://localhost:8080/actuator/metrics/websocket.sessions`
-- **Queue Metrics**: `http://localhost:8080/actuator/metrics/queue.size`
+- **Queue Metrics**: 
+  - `http://localhost:8080/actuator/metrics/queue.size`
+  - `http://localhost:8080/actuator/metrics/queue.capacity`
+  - `http://localhost:8080/actuator/metrics/queue.utilization`
+  - `http://localhost:8080/actuator/metrics/queue.messages.processed`
 
 ## 🔧 설정
 
@@ -245,6 +257,7 @@ WEBSOCKET_MAX_CONNECTIONS_PER_CUSTOMER=1
 
 # 큐 설정
 QUEUE_CAPACITY=1000
+QUEUE_CONSUMER_THREADS=2
 QUEUE_POLL_TIMEOUT=1000
 
 # 고객사 인증 설정
@@ -293,12 +306,16 @@ docker-compose -f docker-compose.prod.yml up -d
 - **실시간 통계 대시보드**: 뉴스 조회수, 인기도 실시간 집계
 - **모바일 푸시 알림**: WebSocket + FCM 연동으로 모바일 알림
 - **AI 감정 분석**: 뉴스 내용의 감정 분석 및 카테고리 자동 분류
+- **AWS SQS 연동**: 내부 큐를 AWS SQS로 전환하여 확장성 향상
+- **Redis Streams**: 고성능 메시지 스트리밍으로 처리량 증가
 
 ### 🛠️ 도전 과제
 - **부하 테스트**: JMeter나 Gatling으로 대용량 동시 접속 테스트
 - **장애 상황 시뮬레이션**: 네트워크 끊김, DB 장애 등 다양한 장애 상황 대응
 - **성능 최적화**: Redis 캐싱, DB 인덱싱, Connection Pooling 등
 - **모니터링 시스템**: Prometheus + Grafana로 실시간 시스템 모니터링
+- **큐 성능 테스트**: 대용량 메시지 처리 시 큐 성능 및 메모리 사용량 측정
+- **메시지 순서 보장**: 동시성 환경에서 메시지 처리 순서 보장 전략
 
 ## 🤝 기여하기
 
@@ -329,8 +346,14 @@ docker-compose -f docker-compose.prod.yml up -d
 - WebSocket 인증 인터셉터
 - 전역 예외 처리
 
+### ✅ Feature 4: Message Queue (메시지 큐 시스템)
+- LinkedBlockingQueue 기반 내부 메시지 큐 시스템
+- Producer-Consumer 패턴으로 뉴스 ID 처리
+- 큐 모니터링 및 메트릭 수집
+- 향후 AWS SQS 전환을 고려한 인터페이스 설계
+- 큐 상태 확인 및 제어 API
+
 ### 🔄 다음 구현 예정 기능
-- Feature 4: Message Queue (메시지 큐 시스템)
 - Feature 5: WebSocket (실시간 통신)
 - Feature 6: News Service (뉴스 서비스)
 - Feature 7: REST API (REST API 구현)
