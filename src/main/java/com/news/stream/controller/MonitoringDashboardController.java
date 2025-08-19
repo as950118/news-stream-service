@@ -119,9 +119,17 @@ public class MonitoringDashboardController {
     private PerformanceMetricsResponse getPerformanceMetrics() {
         // 실제 구현에서는 메트릭 레지스트리에서 조회
         return new PerformanceMetricsResponse(
-            95.5, // 성공률
-            150.0, // 평균 처리 시간
-            25.0   // 큐 처리 지연
+            new PerformanceMetricsResponse.MethodExecutionMetrics(95.5, 150.0, 25.0),
+            new PerformanceMetricsResponse.DatabaseMetrics(98.0, 50.0, 10.0),
+            new PerformanceMetricsResponse.CacheMetrics(85.0, 15.0, 1000),
+            new PerformanceMetricsResponse.MemoryMetrics(
+                Runtime.getRuntime().totalMemory(),
+                Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory(),
+                Runtime.getRuntime().freeMemory(),
+                Runtime.getRuntime().maxMemory(),
+                75.0
+            ),
+            new PerformanceMetricsResponse.ConcurrencyMetrics(10, 20, 5)
         );
     }
     

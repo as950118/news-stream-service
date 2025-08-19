@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -134,8 +135,14 @@ public class NewsProcessingStatusService {
     /**
      * 실패한 뉴스 조회
      */
+    @Transactional(readOnly = true)
     public List<NewsProcessingStatus> findFailedNews() {
-        return statusRepository.findByStatus(NewsProcessingStatus.ProcessingStatus.FAILED);
+        try {
+            return statusRepository.findByStatus(NewsProcessingStatus.ProcessingStatus.FAILED);
+        } catch (Exception e) {
+            logger.error("실패한 뉴스 조회 중 오류 발생", e);
+            return new ArrayList<>();
+        }
     }
     
     /**

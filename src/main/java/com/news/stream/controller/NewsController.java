@@ -9,6 +9,7 @@ import com.news.stream.service.TranslatedNewsService;
 import com.news.stream.service.NewsBatchProcessingService;
 import com.news.stream.service.NewsProcessingStatusService;
 import com.news.stream.service.NewsStreamIntegrationService;
+import com.news.stream.util.Profiled;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -60,6 +61,7 @@ public class NewsController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "뉴스를 찾을 수 없음"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청")
     })
+    @Profiled
     public ResponseEntity<NewsDto> getNewsById(
         @Parameter(description = "뉴스 ID", required = true)
         @PathVariable String id) {
@@ -81,6 +83,7 @@ public class NewsController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "뉴스 목록 조회 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청")
     })
+    @Profiled
     public ResponseEntity<PageResponse<NewsDto>> getNewsList(
         @Parameter(description = "페이지 번호 (0부터 시작)")
         @RequestParam(defaultValue = "0") int page,

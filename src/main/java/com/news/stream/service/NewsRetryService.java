@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +42,7 @@ public class NewsRetryService {
      * 실패한 뉴스 재처리 (1분마다 실행)
      */
     @Scheduled(fixedDelay = 60000)
+    @Transactional
     public void retryFailedNews() {
         try {
             logger.info("실패한 뉴스 재처리 시작");

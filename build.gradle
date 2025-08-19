@@ -41,6 +41,13 @@ dependencies {
     // Monitoring
     implementation 'io.micrometer:micrometer-registry-prometheus'
     
+    // Redis & Caching
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    
+    // Logging Optimization
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+    
     // Test Dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'

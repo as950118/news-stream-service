@@ -13,6 +13,7 @@ import java.util.Objects;
 public class NewsProcessingStatus {
     
     @Id
+    @Column(name = "news_id")
     private String newsId;
     
     @Enumerated(EnumType.STRING)
