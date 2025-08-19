@@ -32,8 +32,8 @@ RUN addgroup -g 1001 -S appgroup && \
 # Set working directory
 WORKDIR /app
 
-# Copy built jar from builder stage
-COPY --from=builder /app/build/libs/*.jar app.jar
+# Copy built jar from builder stage (only the main jar, not the plain jar)
+COPY --from=builder /app/build/libs/news-stream-service-0.0.1-SNAPSHOT.jar app.jar
 
 # Change ownership to app user
 RUN chown -R appuser:appgroup /app

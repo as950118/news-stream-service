@@ -1,7 +1,6 @@
 package com.news.stream.websocket;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -17,12 +16,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author News Stream Service Team
  * @version 1.0.0
  */
+@Slf4j
 @Service
 public class WebSocketConnectionManager {
     
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final Map<String, String> customerConnections = new ConcurrentHashMap<>();
-    private final Logger logger = LoggerFactory.getLogger(WebSocketConnectionManager.class);
     
     /**
      * WebSocket 세션을 추가합니다.
@@ -32,7 +31,7 @@ public class WebSocketConnectionManager {
      */
     public void addSession(String sessionId, WebSocketSession session) {
         sessions.put(sessionId, session);
-        logger.info("WebSocket 세션 추가됨: {}", sessionId);
+        log.info("WebSocket 세션 추가됨: {}", sessionId);
     }
     
     /**
@@ -43,7 +42,7 @@ public class WebSocketConnectionManager {
     public void removeSession(String sessionId) {
         sessions.remove(sessionId);
         customerConnections.remove(sessionId);
-        logger.info("WebSocket 세션 제거됨: {}", sessionId);
+        log.info("WebSocket 세션 제거됨: {}", sessionId);
     }
     
     /**
@@ -54,7 +53,7 @@ public class WebSocketConnectionManager {
      */
     public void associateCustomer(String sessionId, String customerId) {
         customerConnections.put(sessionId, customerId);
-        logger.info("고객사 {}가 세션 {}에 연결됨", customerId, sessionId);
+        log.info("고객사 {}가 세션 {}에 연결됨", customerId, sessionId);
     }
     
     /**
@@ -114,6 +113,24 @@ public class WebSocketConnectionManager {
     }
     
     /**
+     * 총 연결 수를 반환합니다.
+     * 
+     * @return 총 연결 수
+     */
+    public int getTotalConnectionCount() {
+        return sessions.size();
+    }
+    
+    /**
+     * 연결 상태가 정상인지 확인합니다.
+     * 
+     * @return 연결 상태
+     */
+    public boolean isHealthy() {
+        return !sessions.isEmpty() && sessions.size() == customerConnections.size();
+    }
+    
+    /**
      * 특정 고객사가 연결되어 있는지 확인합니다.
      * 
      * @param customerId 고객사 ID
@@ -143,6 +160,6 @@ public class WebSocketConnectionManager {
         sessions.clear();
         customerConnections.clear();
         
-        logger.info("모든 WebSocket 세션 정리 완료: 세션 {}개, 고객사 {}개", sessionCount, customerCount);
+        log.info("모든 WebSocket 세션 정리 완료: 세션 {}개, 고객사 {}개", sessionCount, customerCount);
     }
 }

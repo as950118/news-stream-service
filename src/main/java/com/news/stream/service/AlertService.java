@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-//@Service
+@Service
 public class AlertService {
     
     private final Logger logger = LoggerFactory.getLogger(AlertService.class);

@@ -44,9 +44,9 @@ spring:
   
   sql:
     init:
-      mode: always
-      schema-locations: classpath:db/schema.sql
-      data-locations: classpath:db/data.sql
+      mode: never
+      # schema-locations: classpath:db/schema.sql
+      # data-locations: classpath:db/data.sql
   
   websocket:
     max-text-message-size: 8192
@@ -98,7 +98,6 @@ management:
           autotime:
             enabled: true
             percentiles: 0.5,0.95,0.99
-            percentiles-histogram: true
 
 # JWT 설정
 jwt:
