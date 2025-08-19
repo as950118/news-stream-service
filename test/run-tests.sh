@@ -4,19 +4,19 @@ echo "=== News Stream Service 테스트 실행 ==="
 
 # 1. 단위 테스트 실행
 echo "1. 단위 테스트 실행"
-./gradlew test
+../gradlew test
 
 # 2. 통합 테스트 실행
 echo -e "\n2. 통합 테스트 실행"
-./gradlew integrationTest
+../gradlew integrationTest
 
 # 3. 테스트 커버리지 리포트 생성
 echo -e "\n3. 테스트 커버리지 리포트 생성"
-./gradlew jacocoTestReport
+../gradlew jacocoTestReport
 
 # 4. 테스트 커버리지 검증
 echo -e "\n4. 테스트 커버리지 검증"
-./gradlew jacocoTestCoverageVerification
+../gradlew jacocoTestCoverageVerification
 
 # 5. 테스트 결과 요약
 echo -e "\n=== 테스트 결과 요약 ==="

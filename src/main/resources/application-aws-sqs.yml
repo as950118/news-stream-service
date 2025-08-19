@@ -1,0 +1,30 @@
+# AWS SQS 프로파일 설정
+spring:
+  profiles:
+    active: aws-sqs
+
+# AWS SQS 큐 설정
+queue:
+  type: aws-sqs
+  aws:
+    sqs:
+      endpoint: ${AWS_SQS_ENDPOINT:} # 로컬 테스트용 (예: http://localhost:4566)
+      region: ${AWS_REGION:ap-northeast-2}
+      queue-url: ${AWS_SQS_QUEUE_URL:}
+      max-receive-count: ${AWS_SQS_MAX_RECEIVE_COUNT:3}
+    access-key-id: ${AWS_ACCESS_KEY_ID:}
+    secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+
+# AWS SQS 관련 로깅
+logging:
+  level:
+    com.news.stream.queue: DEBUG
+    software.amazon.awssdk: INFO
+    org.springframework.cloud.aws: DEBUG
+
+# 성능 최적화 설정 (SQS용)
+performance:
+  sqs:
+    batch-size: ${SQS_BATCH_SIZE:10}
+    visibility-timeout: ${SQS_VISIBILITY_TIMEOUT:30}
+    long-polling-timeout: ${SQS_LONG_POLLING_TIMEOUT:20}

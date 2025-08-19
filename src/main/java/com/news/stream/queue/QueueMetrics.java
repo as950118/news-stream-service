@@ -1,7 +1,6 @@
 package com.news.stream.queue;
 
 import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Component;
@@ -9,126 +8,115 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 큐 메트릭 수집 클래스
- * Micrometer를 사용하여 큐 관련 메트릭을 수집합니다.
+ * 큐 메트릭 클래스
+ * 큐 성능과 상태를 모니터링하기 위한 메트릭을 제공합니다.
  */
 @Component
 public class QueueMetrics {
     
-    private final MessageQueue<NewsMessage> messageQueue;
     private final MeterRegistry meterRegistry;
+    private final Counter messagesEnqueued;
+    private final Counter messagesDequeued;
+    private final Counter messagesProcessed;
+    private final Counter messagesFailed;
+    private final Timer messageProcessingTime;
+    private final Timer messageEnqueueTime;
+    private final Timer messageDequeueTime;
     
-    private final Counter messagesProcessedCounter;
-    private final Timer processingTimeTimer;
-    
-    /**
-     * 생성자
-     * 
-     * @param messageQueue 메시지 큐
-     * @param meterRegistry 메트릭 레지스트리
-     */
-    public QueueMetrics(MessageQueue<NewsMessage> messageQueue, 
-                       MeterRegistry meterRegistry) {
-        this.messageQueue = messageQueue;
+    public QueueMetrics(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
+        this.messagesEnqueued = Counter.builder("queue.messages.enqueued")
+                .description("큐에 추가된 메시지 수")
+                .register(meterRegistry);
         
-        // 메트릭 초기화
-        this.messagesProcessedCounter = Counter.builder("queue.messages.processed")
-            .description("처리된 메시지 수")
-            .register(meterRegistry);
+        this.messagesDequeued = Counter.builder("queue.messages.dequeued")
+                .description("큐에서 가져온 메시지 수")
+                .register(meterRegistry);
         
-        this.processingTimeTimer = Timer.builder("queue.processing.time")
-            .description("메시지 처리 시간")
-            .register(meterRegistry);
+        this.messagesProcessed = Counter.builder("queue.messages.processed")
+                .description("성공적으로 처리된 메시지 수")
+                .register(meterRegistry);
         
-        initializeMetrics();
+        this.messagesFailed = Counter.builder("queue.messages.failed")
+                .description("처리 실패한 메시지 수")
+                .register(meterRegistry);
+        
+        this.messageProcessingTime = Timer.builder("queue.message.processing.time")
+                .description("메시지 처리 시간")
+                .register(meterRegistry);
+        
+        this.messageEnqueueTime = Timer.builder("queue.message.enqueue.time")
+                .description("메시지 큐잉 시간")
+                .register(meterRegistry);
+        
+        this.messageDequeueTime = Timer.builder("queue.message.dequeue.time")
+                .description("메시지 디큐잉 시간")
+                .register(meterRegistry);
     }
     
     /**
-     * 메트릭을 초기화합니다.
+     * 메시지 큐잉 메트릭을 기록합니다.
      */
-    private void initializeMetrics() {
-        // 큐 크기 게이지
-        Gauge.builder("queue.size", messageQueue, MessageQueue::size)
-            .description("현재 큐에 있는 메시지 수")
-            .register(meterRegistry);
-        
-        // 큐 용량 게이지
-        if (messageQueue instanceof LinkedBlockingMessageQueue) {
-            LinkedBlockingMessageQueue linkedQueue = (LinkedBlockingMessageQueue) messageQueue;
-            Gauge.builder("queue.capacity", linkedQueue, LinkedBlockingMessageQueue::getCapacity)
-                .description("큐의 전체 용량")
-                .register(meterRegistry);
-            
-            Gauge.builder("queue.remaining.capacity", linkedQueue, LinkedBlockingMessageQueue::getRemainingCapacity)
-                .description("큐의 남은 용량")
-                .register(meterRegistry);
-        }
-        
-        // 큐 사용률 게이지
-        if (messageQueue instanceof LinkedBlockingMessageQueue) {
-            LinkedBlockingMessageQueue linkedQueue = (LinkedBlockingMessageQueue) messageQueue;
-            Gauge.builder("queue.utilization", linkedQueue, this::calculateUtilization)
-                .description("큐 사용률 (0.0 ~ 1.0)")
-                .register(meterRegistry);
-        }
+    public void recordMessageEnqueued() {
+        messagesEnqueued.increment();
     }
     
     /**
-     * 큐 사용률을 계산합니다.
-     * 
-     * @param queue 큐
-     * @return 사용률 (0.0 ~ 1.0)
+     * 메시지 디큐잉 메트릭을 기록합니다.
      */
-    private double calculateUtilization(LinkedBlockingMessageQueue queue) {
-        int capacity = queue.getCapacity();
-        if (capacity == 0) return 0.0;
-        
-        int used = capacity - queue.getRemainingCapacity();
-        return (double) used / capacity;
+    public void recordMessageDequeued() {
+        messagesDequeued.increment();
     }
     
     /**
-     * 메시지 처리 완료를 기록합니다.
+     * 메시지 처리 성공 메트릭을 기록합니다.
      */
     public void recordMessageProcessed() {
-        messagesProcessedCounter.increment();
+        messagesProcessed.increment();
+    }
+    
+    /**
+     * 메시지 처리 실패 메트릭을 기록합니다.
+     */
+    public void recordMessageFailed() {
+        messagesFailed.increment();
     }
     
     /**
      * 메시지 처리 시간을 기록합니다.
-     * 
-     * @param timeInMs 처리 시간 (밀리초)
      */
-    public void recordProcessingTime(long timeInMs) {
-        processingTimeTimer.record(timeInMs, TimeUnit.MILLISECONDS);
+    public void recordProcessingTime(long timeInMillis) {
+        messageProcessingTime.record(timeInMillis, TimeUnit.MILLISECONDS);
     }
     
     /**
-     * 메시지 처리 시간을 기록합니다.
-     * 
-     * @param time 처리 시간
-     * @param unit 시간 단위
+     * 메시지 큐잉 시간을 기록합니다.
      */
-    public void recordProcessingTime(long time, TimeUnit unit) {
-        processingTimeTimer.record(time, unit);
+    public void recordEnqueueTime(long timeInMillis) {
+        messageEnqueueTime.record(timeInMillis, TimeUnit.MILLISECONDS);
     }
     
     /**
-     * 메시지 처리 시간을 측정하는 Timer.Sample을 반환합니다.
-     * 
-     * @return Timer.Sample
+     * 메시지 디큐잉 시간을 기록합니다.
      */
-    public Timer.Sample startProcessingTimer() {
-        return Timer.start(meterRegistry);
+    public void recordDequeueTime(long timeInMillis) {
+        messageDequeueTime.record(timeInMillis, TimeUnit.MILLISECONDS);
     }
     
     /**
-     * 메시지 처리 시간 측정을 완료합니다.
-     * 
-     * @param sample Timer.Sample
+     * AWS SQS 전용 메트릭을 기록합니다.
      */
-    public void stopProcessingTimer(Timer.Sample sample) {
-        sample.stop(processingTimeTimer);
+    public void recordSqsMetrics(String operation, long timeInMillis, boolean success) {
+        if (success) {
+            recordMessageProcessed();
+        } else {
+            recordMessageFailed();
+        }
+        
+        // SQS 작업별 시간 기록
+        Timer.builder("queue.sqs." + operation + ".time")
+                .description("SQS " + operation + " 작업 시간")
+                .register(meterRegistry)
+                .record(timeInMillis, TimeUnit.MILLISECONDS);
     }
 }
