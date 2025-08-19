@@ -70,4 +70,63 @@ public class CustomMetrics {
             .register(meterRegistry)
             .record(timeInMs, TimeUnit.MILLISECONDS);
     }
+    
+    // WebSocket 관련 메트릭
+    public void incrementWebSocketConnectionFailed() {
+        Counter.builder("websocket.connection.failed")
+            .description("WebSocket 연결 실패 횟수")
+            .register(meterRegistry)
+            .increment();
+    }
+    
+    public void incrementWebSocketMessageSendFailed() {
+        Counter.builder("websocket.message.send.failed")
+            .description("WebSocket 메시지 전송 실패 횟수")
+            .register(meterRegistry)
+            .increment();
+    }
+    
+    public void incrementWebSocketAuthenticationFailed() {
+        Counter.builder("websocket.authentication.failed")
+            .description("WebSocket 인증 실패 횟수")
+            .register(meterRegistry)
+            .increment();
+    }
+    
+    // 데이터베이스 관련 메트릭
+    public void incrementDatabaseQueryFailed() {
+        Counter.builder("database.query.failed")
+            .description("데이터베이스 쿼리 실패 횟수")
+            .register(meterRegistry)
+            .increment();
+    }
+    
+    public void incrementDatabaseConnectionFailed() {
+        Counter.builder("database.connection.failed")
+            .description("데이터베이스 연결 실패 횟수")
+            .register(meterRegistry)
+            .increment();
+    }
+    
+    public void incrementNewsNotFound() {
+        Counter.builder("news.not.found")
+            .description("뉴스를 찾을 수 없는 횟수")
+            .register(meterRegistry)
+            .increment();
+    }
+    
+    // 큐 관련 메트릭
+    public void incrementQueueMessageProcessingFailed() {
+        Counter.builder("queue.message.processing.failed")
+            .description("큐 메시지 처리 실패 횟수")
+            .register(meterRegistry)
+            .increment();
+    }
+    
+    public void incrementQueueConnectionFailed() {
+        Counter.builder("queue.connection.failed")
+            .description("큐 연결 실패 횟수")
+            .register(meterRegistry)
+            .increment();
+    }
 }

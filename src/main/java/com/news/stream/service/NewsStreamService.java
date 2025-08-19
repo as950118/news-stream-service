@@ -11,7 +11,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -28,13 +30,22 @@ public class NewsStreamService {
     private final SimpMessagingTemplate messagingTemplate;
     private final TranslatedNewsService newsService;
     private final CustomerService customerService;
+    private final CustomMetrics customMetrics;
+    private final StructuredLogging structuredLogging;
+    private final NewsProcessingStatusService statusService;
     
     public NewsStreamService(SimpMessagingTemplate messagingTemplate,
                             TranslatedNewsService newsService,
-                            CustomerService customerService) {
+                            CustomerService customerService,
+                            CustomMetrics customMetrics,
+                            StructuredLogging structuredLogging,
+                            NewsProcessingStatusService statusService) {
         this.messagingTemplate = messagingTemplate;
         this.newsService = newsService;
+        this.statusService = statusService;
         this.customerService = customerService;
+        this.customMetrics = customMetrics;
+        this.structuredLogging = structuredLogging;
     }
     
     /**
@@ -49,6 +60,16 @@ public class NewsStreamService {
             Optional<TranslatedNews> newsOpt = newsService.findById(newsId);
             if (newsOpt.isEmpty()) {
                 log.warn("뉴스를 찾을 수 없습니다: {}", newsId);
+                customMetrics.incrementNewsNotFound();
+                
+                // 뉴스를 찾을 수 없는 경우 상태를 FAILED로 기록
+                statusService.markAsFailed(
+                    newsId, 
+                    "뉴스를 찾을 수 없습니다", 
+                    "NEWS_NOT_FOUND",
+                    Map.of("system", "뉴스 ID가 존재하지 않음"),
+                    0
+                );
                 return;
             }
             
@@ -60,6 +81,20 @@ public class NewsStreamService {
             
         } catch (Exception e) {
             log.error("뉴스 브로드캐스트 중 오류 발생: {}", newsId, e);
+            customMetrics.incrementNewsFailed();
+            
+            // 브로드캐스트 실패 시 상태를 FAILED로 기록
+            try {
+                statusService.markAsFailed(
+                    newsId, 
+                    "뉴스 브로드캐스트 실패: " + e.getMessage(), 
+                    "BROADCAST_ERROR",
+                    Map.of("system", "브로드캐스트 처리 오류"),
+                    0
+                );
+            } catch (Exception statusException) {
+                log.error("뉴스 처리 상태 기록 실패: {}", newsId, statusException);
+            }
         }
     }
     
@@ -75,6 +110,16 @@ public class NewsStreamService {
             Optional<TranslatedNews> newsOpt = newsService.findById(newsId);
             if (newsOpt.isEmpty()) {
                 log.warn("업데이트할 뉴스를 찾을 수 없습니다: {}", newsId);
+                customMetrics.incrementNewsNotFound();
+                
+                // 뉴스를 찾을 수 없는 경우 상태를 FAILED로 기록
+                statusService.markAsFailed(
+                    newsId, 
+                    "업데이트할 뉴스를 찾을 수 없습니다", 
+                    "NEWS_NOT_FOUND",
+                    Map.of("system", "뉴스 ID가 존재하지 않음"),
+                    0
+                );
                 return;
             }
             
@@ -93,6 +138,20 @@ public class NewsStreamService {
             
         } catch (Exception e) {
             log.error("뉴스 업데이트 브로드캐스트 중 오류 발생: {}", newsId, e);
+            customMetrics.incrementNewsFailed();
+            
+            // 브로드캐스트 실패 시 상태를 FAILED로 기록
+            try {
+                statusService.markAsFailed(
+                    newsId, 
+                    "뉴스 업데이트 브로드캐스트 실패: " + e.getMessage(), 
+                    "BROADCAST_ERROR",
+                    Map.of("system", "업데이트 브로드캐스트 처리 오류"),
+                    0
+                );
+            } catch (Exception statusException) {
+                log.error("뉴스 처리 상태 기록 실패: {}", newsId, statusException);
+            }
         }
     }
     
@@ -117,6 +176,20 @@ public class NewsStreamService {
             
         } catch (Exception e) {
             log.error("뉴스 삭제 알림 브로드캐스트 중 오류 발생: {}", newsId, e);
+            customMetrics.incrementNewsFailed();
+            
+            // 브로드캐스트 실패 시 상태를 FAILED로 기록
+            try {
+                statusService.markAsFailed(
+                    newsId, 
+                    "뉴스 삭제 알림 브로드캐스트 실패: " + e.getMessage(), 
+                    "BROADCAST_ERROR",
+                    Map.of("system", "삭제 알림 브로드캐스트 처리 오류"),
+                    0
+                );
+            } catch (Exception statusException) {
+                log.error("뉴스 처리 상태 기록 실패: {}", newsId, statusException);
+            }
         }
     }
     
@@ -126,19 +199,50 @@ public class NewsStreamService {
     private void broadcastToActiveCustomers(WebSocketMessage<?> message, String newsId, String messageType) {
         List<Customer> activeCustomers = customerService.findActiveCustomers();
         int sentCount = 0;
+        int failedCount = 0;
+        Map<String, String> failedCustomers = new HashMap<>();
         
         for (Customer customer : activeCustomers) {
             if (customer.getConnectionId() != null) {
                 try {
-                    sendToCustomer(customer.getConnectionId(), message);
+                    sendToCustomer(customer.getConnectionId(), message, customer.getId());
                     sentCount++;
                 } catch (Exception e) {
-                    log.error("고객사 {}에게 {} 전송 실패: {}", customer.getId(), messageType, e.getMessage());
+                    failedCount++;
+                    String errorMessage = e.getMessage() != null ? e.getMessage() : "알 수 없는 오류";
+                    failedCustomers.put(customer.getId(), errorMessage);
+                    
+                    log.error("고객사 {}에게 {} 전송 실패: {}", customer.getId(), messageType, errorMessage);
+                    customMetrics.incrementWebSocketMessageSendFailed();
+                    structuredLogging.logWebSocketMessageSendFailed(
+                        customer.getConnectionId(), 
+                        customer.getId(), 
+                        messageType, 
+                        e
+                    );
                 }
             }
         }
         
-        log.info("{}이 {}명의 고객사에게 전송되었습니다: {}", messageType, sentCount, newsId);
+        // 고객사별 전송 실패가 있는 경우 상태를 FAILED로 기록
+        if (!failedCustomers.isEmpty()) {
+            try {
+                statusService.markAsFailed(
+                    newsId, 
+                    String.format("%s 전송 중 %d명의 고객사에게 실패", messageType, failedCount), 
+                    "CUSTOMER_DELIVERY_FAILED",
+                    failedCustomers,
+                    activeCustomers.size()
+                );
+                
+                log.warn("{} 전송 중 {}명의 고객사에게 실패: {}", messageType, failedCount, newsId);
+            } catch (Exception statusException) {
+                log.error("고객사별 실패 정보 기록 실패: {}", newsId, statusException);
+            }
+        }
+        
+        log.info("{}이 {}명의 고객사에게 전송되었습니다 (성공: {}, 실패: {}): {}", 
+                messageType, activeCustomers.size(), sentCount, failedCount, newsId);
     }
     
     /**
@@ -146,17 +250,25 @@ public class NewsStreamService {
      * 
      * @param connectionId 고객사의 연결 ID
      * @param message 전송할 메시지
+     * @param customerId 고객사 ID (로깅용)
      */
-    private void sendToCustomer(String connectionId, Object message) {
+    private void sendToCustomer(String connectionId, Object message, String customerId) {
         try {
             messagingTemplate.convertAndSendToUser(
                 connectionId,
                 "/topic/news",
                 message
             );
-            log.debug("고객사 {}에게 메시지 전송 완료: {}", connectionId, message);
+            log.debug("고객사 {}에게 메시지 전송 완료: {}", customerId, message);
         } catch (Exception e) {
-            log.error("고객사 {}에게 메시지 전송 실패: {}", connectionId, e.getMessage());
+            log.error("고객사 {}에게 메시지 전송 실패: {}", customerId, e.getMessage());
+            customMetrics.incrementWebSocketMessageSendFailed();
+            structuredLogging.logWebSocketMessageSendFailed(
+                connectionId, 
+                customerId, 
+                "NEWS_MESSAGE", 
+                e
+            );
             throw e;
         }
     }

@@ -35,32 +35,44 @@ public class NewsProcessingStatusService {
      * 뉴스를 PENDING 상태로 설정
      */
     public void markAsPending(String newsId) {
-        NewsProcessingStatus status = new NewsProcessingStatus();
-        status.setNewsId(newsId);
-        status.setStatus(NewsProcessingStatus.ProcessingStatus.PENDING);
-        status.setCreatedAt(LocalDateTime.now());
-        status.setUpdatedAt(LocalDateTime.now());
-        
-        statusRepository.save(status);
-        log.debug("뉴스 처리 상태를 PENDING으로 설정: {}", newsId);
+        try {
+            NewsProcessingStatus status = new NewsProcessingStatus();
+            status.setNewsId(newsId);
+            status.setStatus(NewsProcessingStatus.ProcessingStatus.PENDING);
+            status.setCreatedAt(LocalDateTime.now());
+            status.setUpdatedAt(LocalDateTime.now());
+            
+            statusRepository.save(status);
+            log.debug("뉴스 처리 상태를 PENDING으로 설정: {}", newsId);
+        } catch (Exception e) {
+            log.error("뉴스 처리 상태를 PENDING으로 설정 중 오류 발생: {}", newsId, e);
+        }
     }
     
     /**
      * 뉴스를 PROCESSING 상태로 설정
      */
     public void markAsProcessing(String newsId) {
-        updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.PROCESSING, 
-                    status -> status.setProcessingStartedAt(LocalDateTime.now()));
-        log.debug("뉴스 처리 상태를 PROCESSING으로 설정: {}", newsId);
+        try {
+            updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.PROCESSING, 
+                        status -> status.setProcessingStartedAt(LocalDateTime.now()));
+            log.debug("뉴스 처리 상태를 PROCESSING으로 설정: {}", newsId);
+        } catch (Exception e) {
+            log.error("뉴스 처리 상태를 PROCESSING으로 설정 중 오류 발생: {}", newsId, e);
+        }
     }
     
     /**
      * 뉴스를 COMPLETED 상태로 설정
      */
     public void markAsCompleted(String newsId) {
-        updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.COMPLETED,
-                    status -> status.setProcessingCompletedAt(LocalDateTime.now()));
-        log.debug("뉴스 처리 상태를 COMPLETED로 설정: {}", newsId);
+        try {
+            updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.COMPLETED,
+                        status -> status.setProcessingCompletedAt(LocalDateTime.now()));
+            log.debug("뉴스 처리 상태를 COMPLETED로 설정: {}", newsId);
+        } catch (Exception e) {
+            log.error("뉴스 처리 상태를 COMPLETED로 설정 중 오류 발생: {}", newsId, e);
+        }
     }
     
     /**
@@ -68,25 +80,29 @@ public class NewsProcessingStatusService {
      */
     public void markAsFailed(String newsId, String errorMessage, String failureReason, 
                            Map<String, String> failedCustomers, int totalCustomerCount) {
-        updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.FAILED, status -> {
-            status.setErrorMessage(errorMessage);
-            status.setFailureReason(failureReason);
-            status.setFailedCustomerCount(failedCustomers.size());
-            status.setTotalCustomerCount(totalCustomerCount);
-            status.setLastFailureAt(LocalDateTime.now());
+        try {
+            updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.FAILED, status -> {
+                status.setErrorMessage(errorMessage);
+                status.setFailureReason(failureReason);
+                status.setFailedCustomerCount(failedCustomers.size());
+                status.setTotalCustomerCount(totalCustomerCount);
+                status.setLastFailureAt(LocalDateTime.now());
+                
+                // 고객사별 실패 정보를 JSON으로 저장
+                try {
+                    String affectedCustomersJson = objectMapper.writeValueAsString(failedCustomers);
+                    status.setAffectedCustomers(affectedCustomersJson);
+                } catch (JsonProcessingException e) {
+                    log.error("고객사별 실패 정보 JSON 변환 실패: {}", newsId, e);
+                    status.setAffectedCustomers("{}");
+                }
+            });
             
-            // 고객사별 실패 정보를 JSON으로 저장
-            try {
-                String affectedCustomersJson = objectMapper.writeValueAsString(failedCustomers);
-                status.setAffectedCustomers(affectedCustomersJson);
-            } catch (JsonProcessingException e) {
-                log.error("고객사별 실패 정보 JSON 변환 실패: {}", newsId, e);
-                status.setAffectedCustomers("{}");
-            }
-        });
-        
-        log.warn("뉴스 처리 상태를 FAILED로 설정: {} - {} ({}명 실패)", 
-            newsId, failureReason, failedCustomers.size());
+            log.warn("뉴스 처리 상태를 FAILED로 설정: {} - {} ({}명 실패)", 
+                newsId, failureReason, failedCustomers.size());
+        } catch (Exception e) {
+            log.error("뉴스 처리 상태를 FAILED로 설정 중 오류 발생: {}", newsId, e);
+        }
     }
     
     /**
@@ -97,12 +113,42 @@ public class NewsProcessingStatusService {
     }
     
     /**
+     * 뉴스 조회 실패 시 상태를 FAILED로 설정
+     */
+    public void markAsFailedForQuery(String newsId, String errorMessage, String failureReason) {
+        try {
+            // 기존 상태가 없으면 새로 생성
+            NewsProcessingStatus status = statusRepository.findById(newsId)
+                .orElse(new NewsProcessingStatus(newsId, NewsProcessingStatus.ProcessingStatus.FAILED));
+            
+            status.setStatus(NewsProcessingStatus.ProcessingStatus.FAILED);
+            status.setErrorMessage(errorMessage);
+            status.setFailureReason(failureReason);
+            status.setLastFailureAt(LocalDateTime.now());
+            status.setUpdatedAt(LocalDateTime.now());
+            
+            if (status.getCreatedAt() == null) {
+                status.setCreatedAt(LocalDateTime.now());
+            }
+            
+            statusRepository.save(status);
+            log.warn("뉴스 조회 실패 상태를 FAILED로 설정: {} - {}", newsId, failureReason);
+        } catch (Exception e) {
+            log.error("뉴스 조회 실패 상태 설정 중 오류 발생: {}", newsId, e);
+        }
+    }
+    
+    /**
      * 뉴스 재시도 횟수 증가
      */
     public void incrementRetryCount(String newsId) {
-        updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.RETRY, 
-                    status -> status.setRetryCount(status.getRetryCount() + 1));
-        log.debug("뉴스 재시도 횟수 증가: {}", newsId);
+        try {
+            updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.RETRY, 
+                        status -> status.setRetryCount(status.getRetryCount() + 1));
+            log.debug("뉴스 재시도 횟수 증가: {}", newsId);
+        } catch (Exception e) {
+            log.error("뉴스 재시도 횟수 증가 중 오류 발생: {}", newsId, e);
+        }
     }
     
     /**
@@ -110,12 +156,16 @@ public class NewsProcessingStatusService {
      */
     private void updateStatus(String newsId, NewsProcessingStatus.ProcessingStatus newStatus, 
                              StatusUpdater updater) {
-        statusRepository.findById(newsId).ifPresent(status -> {
-            status.setStatus(newStatus);
-            status.setUpdatedAt(LocalDateTime.now());
-            updater.update(status);
-            statusRepository.save(status);
-        });
+        try {
+            statusRepository.findById(newsId).ifPresent(status -> {
+                status.setStatus(newStatus);
+                status.setUpdatedAt(LocalDateTime.now());
+                updater.update(status);
+                statusRepository.save(status);
+            });
+        } catch (Exception e) {
+            log.error("뉴스 처리 상태 업데이트 중 오류 발생: {}", newsId, e);
+        }
     }
     
     /**
@@ -135,28 +185,48 @@ public class NewsProcessingStatusService {
      * 재시도 중인 뉴스 조회
      */
     public List<NewsProcessingStatus> findRetryNews() {
-        return statusRepository.findByStatus(NewsProcessingStatus.ProcessingStatus.RETRY);
+        try {
+            return statusRepository.findByStatus(NewsProcessingStatus.ProcessingStatus.RETRY);
+        } catch (Exception e) {
+            log.error("재시도 중인 뉴스 조회 중 오류 발생", e);
+            return new ArrayList<>();
+        }
     }
     
     /**
      * 특정 상태의 뉴스 개수 조회
      */
     public long countByStatus(NewsProcessingStatus.ProcessingStatus status) {
-        return statusRepository.countByStatus(status);
+        try {
+            return statusRepository.countByStatus(status);
+        } catch (Exception e) {
+            log.error("특정 상태의 뉴스 개수 조회 중 오류 발생: {}", status, e);
+            return 0;
+        }
     }
     
     /**
      * 뉴스 ID로 처리 상태 조회
      */
     public Optional<NewsProcessingStatus> findByNewsId(String newsId) {
-        return statusRepository.findById(newsId);
+        try {
+            return statusRepository.findById(newsId);
+        } catch (Exception e) {
+            log.error("뉴스 ID로 처리 상태 조회 중 오류 발생: {}", newsId, e);
+            return Optional.empty();
+        }
     }
     
     /**
      * 특정 기간 이후의 뉴스 처리 상태 조회
      */
     public List<NewsProcessingStatus> findByCreatedAtAfter(LocalDateTime dateTime) {
-        return statusRepository.findByCreatedAtAfter(dateTime);
+        try {
+            return statusRepository.findByCreatedAtAfter(dateTime);
+        } catch (Exception e) {
+            log.error("특정 기간 이후의 뉴스 처리 상태 조회 중 오류 발생: {}", dateTime, e);
+            return new ArrayList<>();
+        }
     }
     
     /**
@@ -193,46 +263,61 @@ public class NewsProcessingStatusService {
      * Dead Letter Queue의 모든 뉴스 조회
      */
     public List<NewsProcessingStatus> getDeadLetterNews() {
-        return statusRepository.findByStatus(NewsProcessingStatus.ProcessingStatus.DEAD_LETTER);
+        try {
+            return statusRepository.findByStatus(NewsProcessingStatus.ProcessingStatus.DEAD_LETTER);
+        } catch (Exception e) {
+            log.error("Dead Letter Queue 뉴스 조회 중 오류 발생", e);
+            return new ArrayList<>();
+        }
     }
     
     /**
      * Dead Letter Queue 통계 조회
      */
     public DeadLetterQueueStats getDeadLetterQueueStats() {
-        long deadLetterCount = statusRepository.countByStatus(NewsProcessingStatus.ProcessingStatus.DEAD_LETTER);
-        long failedCount = statusRepository.countByStatus(NewsProcessingStatus.ProcessingStatus.FAILED);
-        long retryCount = statusRepository.countByStatus(NewsProcessingStatus.ProcessingStatus.RETRY);
-        
-        LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
-        long recentCount = statusRepository.countByLastFailedAtBetween(last24Hours, LocalDateTime.now());
-        
-        return new DeadLetterQueueStats(
-            deadLetterCount,
-            failedCount,
-            retryCount,
-            recentCount
-        );
+        try {
+            long deadLetterCount = statusRepository.countByStatus(NewsProcessingStatus.ProcessingStatus.DEAD_LETTER);
+            long failedCount = statusRepository.countByStatus(NewsProcessingStatus.ProcessingStatus.FAILED);
+            long retryCount = statusRepository.countByStatus(NewsProcessingStatus.ProcessingStatus.RETRY);
+            
+            LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
+            long recentCount = statusRepository.countByLastFailedAtBetween(last24Hours, LocalDateTime.now());
+            
+            return new DeadLetterQueueStats(
+                deadLetterCount,
+                failedCount,
+                retryCount,
+                recentCount
+            );
+        } catch (Exception e) {
+            log.error("Dead Letter Queue 통계 조회 중 오류 발생", e);
+            return new DeadLetterQueueStats(0, 0, 0, 0);
+        }
     }
     
     /**
      * 고객사별 실패 정보 조회
      */
     public Map<String, String> getFailedCustomerDetails(String newsId) {
-        return statusRepository.findById(newsId)
-            .filter(status -> status.getAffectedCustomers() != null)
-            .map(status -> {
-                try {
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> failedCustomers = objectMapper.readValue(
-                        status.getAffectedCustomers(), Map.class);
-                    return failedCustomers;
-                } catch (Exception e) {
-                    log.error("고객사별 실패 정보 파싱 실패: {}", newsId, e);
-                    return Map.<String, String>of();
-                }
-            })
-            .orElse(Map.of());
+        try {
+            return statusRepository.findById(newsId)
+                .filter(status -> status.getAffectedCustomers() != null)
+                .map(status -> {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> failedCustomers = objectMapper.readValue(
+                            status.getAffectedCustomers(), Map.class);
+                        return failedCustomers;
+                    } catch (Exception e) {
+                        log.error("고객사별 실패 정보 파싱 실패: {}", newsId, e);
+                        return Map.<String, String>of();
+                    }
+                })
+                .orElse(Map.of());
+        } catch (Exception e) {
+            log.error("고객사별 실패 정보 조회 중 오류 발생: {}", newsId, e);
+            return Map.of();
+        }
     }
     
     /**
