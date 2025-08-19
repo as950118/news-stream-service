@@ -2,6 +2,7 @@ package com.news.stream.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * 뉴스 처리 상태 엔티티
@@ -30,6 +31,21 @@ public class NewsProcessingStatus {
     @Column(name = "error_message")
     private String errorMessage;
     
+    @Column(name = "failure_reason")
+    private String failureReason;
+    
+    @Column(name = "affected_customers")
+    private String affectedCustomers; // JSON 형태로 고객사 정보 저장
+    
+    @Column(name = "failed_customer_count")
+    private int failedCustomerCount = 0;
+    
+    @Column(name = "total_customer_count")
+    private int totalCustomerCount = 0;
+    
+    @Column(name = "last_failure_at")
+    private LocalDateTime lastFailureAt;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
@@ -41,7 +57,20 @@ public class NewsProcessingStatus {
         PROCESSING,
         COMPLETED,
         FAILED,
-        RETRY
+        RETRY,
+        DEAD_LETTER
+    }
+    
+    public enum FailureReason {
+        NETWORK_ERROR,
+        CUSTOMER_OFFLINE,
+        AUTHENTICATION_FAILED,
+        MESSAGE_TOO_LARGE,
+        RATE_LIMIT_EXCEEDED,
+        VALIDATION_ERROR,
+        PROCESSING_ERROR,
+        MAX_RETRY_EXCEEDED,
+        UNKNOWN_ERROR
     }
     
     // 기본 생성자
@@ -111,6 +140,51 @@ public class NewsProcessingStatus {
         this.updatedAt = LocalDateTime.now();
     }
     
+    public String getFailureReason() {
+        return failureReason;
+    }
+    
+    public void setFailureReason(String failureReason) {
+        this.failureReason = failureReason;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    public String getAffectedCustomers() {
+        return affectedCustomers;
+    }
+    
+    public void setAffectedCustomers(String affectedCustomers) {
+        this.affectedCustomers = affectedCustomers;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    public int getFailedCustomerCount() {
+        return failedCustomerCount;
+    }
+    
+    public void setFailedCustomerCount(int failedCustomerCount) {
+        this.failedCustomerCount = failedCustomerCount;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    public int getTotalCustomerCount() {
+        return totalCustomerCount;
+    }
+    
+    public void setTotalCustomerCount(int totalCustomerCount) {
+        this.totalCustomerCount = totalCustomerCount;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    public LocalDateTime getLastFailureAt() {
+        return lastFailureAt;
+    }
+    
+    public void setLastFailureAt(LocalDateTime lastFailureAt) {
+        this.lastFailureAt = lastFailureAt;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -127,6 +201,7 @@ public class NewsProcessingStatus {
         this.updatedAt = updatedAt;
     }
     
+    // equals와 hashCode
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -150,6 +225,10 @@ public class NewsProcessingStatus {
                 ", processingCompletedAt=" + processingCompletedAt +
                 ", retryCount=" + retryCount +
                 ", errorMessage='" + errorMessage + '\'' +
+                ", failureReason='" + failureReason + '\'' +
+                ", failedCustomerCount=" + failedCustomerCount +
+                ", totalCustomerCount=" + totalCustomerCount +
+                ", lastFailureAt=" + lastFailureAt +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 '}';

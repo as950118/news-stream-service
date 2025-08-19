@@ -27,6 +27,11 @@ CREATE TABLE IF NOT EXISTS NEWS_PROCESSING_STATUS (
     processing_completed_at TIMESTAMP,
     retry_count INTEGER DEFAULT 0,
     error_message TEXT,
+    failure_reason VARCHAR(100),
+    affected_customers TEXT,
+    failed_customer_count INTEGER DEFAULT 0,
+    total_customer_count INTEGER DEFAULT 0,
+    last_failure_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

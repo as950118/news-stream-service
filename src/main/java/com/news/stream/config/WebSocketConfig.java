@@ -39,13 +39,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // WebSocket 연결을 위한 엔드포인트 등록
-        registry.addEndpoint("/ws")
+        // WebSocket 연결을 위한 엔드포인트 등록 (SockJS 포함)
+        registry.addEndpoint("/ws/news")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
         
         // SockJS를 사용하지 않는 WebSocket 연결
-        registry.addEndpoint("/ws")
+        registry.addEndpoint("/ws/news")
                 .setAllowedOriginPatterns("*");
     }
 

@@ -1,6 +1,7 @@
 package com.news.stream.service;
 
 import com.news.stream.model.NewsProcessingStatus;
+import com.news.stream.model.TranslatedNews;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,12 +13,13 @@ import java.util.List;
 
 /**
  * 뉴스 재처리 서비스
- * 실패한 뉴스를 재처리하는 기능 제공
+ * 실패한 뉴스를 재처리하고, 최대 재시도 횟수 초과 시 Dead Letter Queue로 이동
  */
 @Service
 public class NewsRetryService {
     
     private final NewsProcessingStatusService statusService;
+    private final TranslatedNewsService newsService;
     private final NewsStreamIntegrationService integrationService;
     private final Logger logger = LoggerFactory.getLogger(NewsRetryService.class);
     
@@ -28,8 +30,10 @@ public class NewsRetryService {
     private long retryDelay;
     
     public NewsRetryService(NewsProcessingStatusService statusService,
-                             NewsStreamIntegrationService integrationService) {
+                           TranslatedNewsService newsService,
+                           NewsStreamIntegrationService integrationService) {
         this.statusService = statusService;
+        this.newsService = newsService;
         this.integrationService = integrationService;
     }
     
@@ -53,8 +57,8 @@ public class NewsRetryService {
                     if (status.getRetryCount() < maxRetryAttempts) {
                         retryNews(status);
                     } else {
-                        logger.warn("최대 재시도 횟수 초과: {} ({}회)", 
-                            status.getNewsId(), status.getRetryCount());
+                        // 최대 재시도 횟수 초과 시 Dead Letter Queue로 이동
+                        moveToDeadLetterQueue(status);
                     }
                 }
             } else {
@@ -90,6 +94,31 @@ public class NewsRetryService {
             logger.warn("뉴스 재처리 중 인터럽트 발생: {}", status.getNewsId());
         } catch (Exception e) {
             logger.error("뉴스 재처리 실패: {}", status.getNewsId(), e);
+            // 재처리 실패 시 상태를 FAILED로 설정
+            statusService.markAsFailed(status.getNewsId(), "재처리 실패: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 뉴스를 Dead Letter Queue로 이동
+     */
+    private void moveToDeadLetterQueue(NewsProcessingStatus status) {
+        try {
+            logger.warn("최대 재시도 횟수 초과로 Dead Letter Queue로 이동: {} ({}회)", 
+                status.getNewsId(), status.getRetryCount());
+            
+            // Dead Letter Queue로 이동
+            statusService.moveToDeadLetterQueue(
+                status.getNewsId(),
+                "MAX_RETRY_EXCEEDED",
+                status.getRetryCount(),
+                status.getErrorMessage()
+            );
+            
+            logger.info("뉴스가 Dead Letter Queue로 이동됨: {}", status.getNewsId());
+            
+        } catch (Exception e) {
+            logger.error("Dead Letter Queue 이동 중 오류 발생: {}", status.getNewsId(), e);
         }
     }
 }

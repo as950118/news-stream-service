@@ -48,4 +48,11 @@ public interface NewsProcessingStatusRepository extends JpaRepository<NewsProces
     @Query("SELECT n FROM NewsProcessingStatus n WHERE n.createdAt BETWEEN :startDate AND :endDate")
     List<NewsProcessingStatus> findByCreatedAtBetween(@Param("startDate") LocalDateTime startDate, 
                                                       @Param("endDate") LocalDateTime endDate);
+    
+    /**
+     * 특정 시간 범위 내의 실패한 뉴스 개수 조회
+     */
+    @Query("SELECT COUNT(n) FROM NewsProcessingStatus n WHERE n.status IN ('FAILED', 'RETRY', 'DEAD_LETTER') AND n.updatedAt BETWEEN :startDate AND :endDate")
+    long countByLastFailedAtBetween(@Param("startDate") LocalDateTime startDate, 
+                                    @Param("endDate") LocalDateTime endDate);
 }
