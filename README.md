@@ -2,6 +2,9 @@
 
 데이터베이스에 적재된 데이터를 실시간으로 여러 엔드포인트에 전송하는 백엔드 서비스입니다.
 
+- [실행방법](#실행방법)
+- [SQS 마이그레이션](#AWS-SQS-마이그레이션-가이드)
+- [미구현사항](#미구현사항)
 ## 📋 프로젝트 개요
 
 실시간 뉴스 전송 시스템을 직접 구현해보는 토이프로젝트입니다
@@ -9,6 +12,11 @@
 WebSocket, 메시지 큐, 실시간 통신 등 백엔드 개발의 핵심 기술들을 학습하고 구현해보며, 실제 서비스처럼 동작하는 시스템을 만들어봅니다. 
 
 **시나리오**: 번역한 뉴스가 DB에 저장되면, 메시지 큐를 통해 뉴스 ID를 받아서 WebSocket으로 실시간 전송하는 시스템입니다.
+
+### 미구현사항
+- API에 대한 관리자 체크
+- 소켓이 연결된 세션에 대한 connection_id 설정
+- DLQ에 대한 설정
 
 ### 주요 기능
 - **실시간 뉴스 전송**: 웹소켓을 통한 번역된 뉴스 실시간 전송
@@ -69,7 +77,7 @@ WebSocket, 메시지 큐, 실시간 통신 등 백엔드 개발의 핵심 기술
 - Docker & Docker Compose
 - gradle 9+
 
-### 설치 및 실행
+### 실행방법
 
 1. **저장소 클론**
 ```bash
@@ -82,22 +90,13 @@ cd news-stream-service
 docker-compose up -d
 ```
 
-3. **애플리케이션 실행**
+3. **테스트(html + js)**
 ```bash
-./gradlew bootRun
+/cd test
+test-scenarios.html
 ```
 
-4. **빌드**
-```bash
-./gradlew build
-```
-
-5. **테스트 실행**
-```bash
-./gradlew test
-```
-
-6. **API 문서 확인**
+4. **API 문서 확인**
 ```
 http://localhost:8080/swagger-ui.html
 ```
@@ -124,6 +123,8 @@ news-stream-service/
 │   │       ├── application.yml      # 애플리케이션 설정 (JWT, 고객사 설정 포함)
 │   │       └── db/                  # 데이터베이스 스크립트
 │   └── test/                        # 테스트 코드
+├── test/                            # 테스트를 위한 툴 제공
+│   └── test-scenarios.html          # 테스트를 위한 화면 제공
 ├── docker-compose.yml               # Docker 환경 설정
 ├── Dockerfile                       # 애플리케이션 Docker 이미지
 ├── build.gradle                     # Gradle 의존성 관리 (Spring Security, JWT 포함)
@@ -291,9 +292,11 @@ docker run -p 8080:8080 news-stream-service:latest
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-## 🔮 학습 목표 및 확장 계획
+---
 
-### 🎯 주요 학습 포인트
+## 🔮 확장 계획
+
+### 🎯 주요 포인트
 - **WebSocket 구현**: 실시간 양방향 통신의 원리와 구현 방법
 - **메시지 큐 패턴**: Producer-Consumer 패턴과 비동기 처리
 - **동시성 처리**: Java 21 Virtual Threads를 활용한 고성능 처리
@@ -473,11 +476,15 @@ public class NewsService {
 
 이 가이드를 따라 구현하면 REST API에서도 JWT 기반 인증을 완벽하게 적용할 수 있습니다.
 
-## 🚀 AWS SQS 마이그레이션 가이드
+---
+
+## AWS SQS 마이그레이션 가이드
 
 ### 📋 개요
 
-현재 시스템은 로컬 메시지 큐(LinkedBlockingQueue)를 사용하고 있으며, AWS SQS로 마이그레이션할 수 있도록 설계되어 있습니다. DDD(도메인 주도 설계) 원칙을 잘 따르고 있어 마이그레이션이 상당히 수월합니다.
+현재 시스템은 로컬 메시지 큐(LinkedBlockingQueue)를 사용하고 있으며, AWS SQS로 마이그레이션할 수 있도록 설계되어 있습니다.
+
+DDD(도메인 주도 설계) 원칙을 잘 따르고 있어 마이그레이션이 상당히 수월합니다.
 
 ### 🎯 마이그레이션 전략
 
@@ -706,4 +713,3 @@ DDD 기반으로 잘 설계된 현재 시스템은 AWS SQS 마이그레이션에
 
 체계적인 접근과 충분한 테스트를 통해 안전하고 효율적인 마이그레이션을 진행할 수 있습니다.
 
----

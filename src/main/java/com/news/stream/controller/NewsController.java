@@ -14,8 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,7 +30,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.HashMap;
+import com.news.stream.model.Customer;
+import com.news.stream.service.CustomerService;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/news")
 @Validated
@@ -42,16 +44,18 @@ public class NewsController {
     private final NewsBatchProcessingService batchService;
     private final NewsProcessingStatusService statusService;
     private final NewsStreamIntegrationService streamService;
-    private final Logger logger = LoggerFactory.getLogger(NewsController.class);
-    
+    private final CustomerService customerService;
+
     public NewsController(TranslatedNewsService newsService,
                          NewsBatchProcessingService batchService,
                          NewsProcessingStatusService statusService,
-                         NewsStreamIntegrationService streamService) {
+                         NewsStreamIntegrationService streamService,
+                         CustomerService customerService) {
         this.newsService = newsService;
         this.batchService = batchService;
         this.statusService = statusService;
         this.streamService = streamService;
+        this.customerService = customerService;
     }
     
     @GetMapping("/{id}")
@@ -144,7 +148,7 @@ public class NewsController {
             }
             
         } catch (Exception e) {
-            logger.error("뉴스 목록 조회 중 오류 발생", e);
+            log.error("뉴스 목록 조회 중 오류 발생", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -179,7 +183,7 @@ public class NewsController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("뉴스 스트리밍 시작 중 오류 발생: {}", id, e);
+            log.error("뉴스 스트리밍 시작 중 오류 발생: {}", id, e);
             
             ApiResponse<String> response = new ApiResponse<>(
                 "ERROR",
@@ -318,8 +322,8 @@ public class NewsController {
                 
                 // 성공 시 상태를 COMPLETED로 변경
                 statusService.markAsCompleted(savedNews.getId());
-                
-                logger.info("테스트 뉴스 생성 및 전송 완료: {}", savedNews.getId());
+
+                log.info("테스트 뉴스 생성 및 전송 완료: {}", savedNews.getId());
                 
                 return ResponseEntity.ok(new ApiResponse<>(
                     "SUCCESS",
@@ -334,7 +338,7 @@ public class NewsController {
             }
             
         } catch (Exception e) {
-            logger.error("테스트 뉴스 생성 중 오류 발생", e);
+            log.error("테스트 뉴스 생성 중 오류 발생", e);
             return ResponseEntity.badRequest().body(new ApiResponse<>(
                 "ERROR",
                 "테스트 뉴스 생성 실패: " + e.getMessage(),
@@ -344,17 +348,17 @@ public class NewsController {
     }
     
     @PostMapping("/test-dlq")
-    @Operation(summary = "DLQ 테스트용 뉴스 생성", description = "임의로 실패한 뉴스를 생성하여 Dead Letter Queue를 테스트합니다")
+    @Operation(summary = "DLQ 테스트용 뉴스 생성", description = "실제 고객사 데이터 기반으로 Dead Letter Queue를 테스트합니다. 연결 상태에 따라 다른 처리를 수행합니다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "DLQ 테스트 뉴스 생성 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청")
     })
-    public ResponseEntity<ApiResponse<String>> createDLQTestNews(
+    public ResponseEntity<ApiResponse<Object>> createDLQTestNews(
         @Parameter(description = "뉴스 제목")
-        @RequestParam(defaultValue = "DLQ 테스트 뉴스") String title,
+        @RequestParam(defaultValue = "실제 데이터 기반 DLQ 테스트 뉴스") String title,
         
         @Parameter(description = "뉴스 내용")
-        @RequestParam(defaultValue = "이것은 DLQ 테스트용 뉴스입니다.") String content,
+        @RequestParam(defaultValue = "이것은 실제 고객사 데이터를 기반으로 한 DLQ 테스트용 뉴스입니다.") String content,
         
         @Parameter(description = "뉴스 ID (선택사항)")
         @RequestParam(required = false) String newsId,
@@ -367,45 +371,80 @@ public class NewsController {
         
         try {
             // 뉴스 ID가 없으면 자동 생성
-            String finalNewsId = newsId != null ? newsId : "dlq-test-" + System.currentTimeMillis();
+            if (newsId == null || newsId.trim().isEmpty()) {
+                newsId = "dlq-test-" + System.currentTimeMillis();
+            }
             
-            // simulateFailure를 boolean으로 변환
-            boolean shouldSimulateFailure = "true".equalsIgnoreCase(simulateFailure);
+            boolean shouldSimulateFailure = Boolean.parseBoolean(simulateFailure);
             
-            // 테스트 뉴스 생성
-            TranslatedNews testNews = new TranslatedNews(
-                finalNewsId,
-                title,
-                content,
-                LocalDateTime.now()
-            );
+            // 실제 고객사 데이터 조회
+            List<Customer> allCustomers = customerService.findActiveCustomers();
+            if (allCustomers.isEmpty()) {
+                return ResponseEntity.badRequest().body(new ApiResponse<Object>(
+                    "ERROR",
+                    "활성 고객사가 없습니다. 먼저 고객사를 생성해주세요.",
+                    null
+                ));
+            }
             
-            // 생성 시간과 업데이트 시간 명시적 설정
-            testNews.setCreatedAt(LocalDateTime.now());
-            testNews.setUpdatedAt(LocalDateTime.now());
+            // 고객사별 연결 상태 분석
+            Map<String, Boolean> customerConnectionStatus = new HashMap<>();
+            Map<String, String> connectionDetails = new HashMap<>();
             
-            // 뉴스 저장
-            TranslatedNews savedNews = newsService.save(testNews);
+            for (Customer customer : allCustomers) {
+                boolean isConnected = customerService.isConnectionAvailable(customer.getId());
+                customerConnectionStatus.put(customer.getId(), isConnected);
+                
+                if (isConnected) {
+                    connectionDetails.put(customer.getId(), "연결 가능");
+                } else {
+                    connectionDetails.put(customer.getId(), "이미 연결됨");
+                }
+            }
             
-            // 처리 상태를 PENDING으로 설정
+            // 뉴스 생성 및 저장
+            TranslatedNews news = new TranslatedNews();
+            news.setId(newsId);
+            news.setTitle(title);
+            news.setContent(content);
+            news.setPublishedAt(LocalDateTime.now());
+            news.setCreatedAt(LocalDateTime.now());
+            news.setUpdatedAt(LocalDateTime.now());
+            
+            TranslatedNews savedNews = newsService.save(news);
             statusService.markAsPending(savedNews.getId());
             
             if (shouldSimulateFailure) {
-                // 실패 시뮬레이션: 여러 번 실패 상태로 설정하여 재시도 횟수 초과
+                // 실제 고객사 데이터 기반 실패 시뮬레이션
                 for (int i = 0; i < retryCount; i++) {
-                    // 고객사별 실패 정보 시뮬레이션
-                    Map<String, String> failedCustomers = Map.of(
-                        "customer-001", "네트워크 오류",
-                        "customer-002", "인증 실패",
-                        "customer-003", "연결 해제됨"
-                    );
+                    // 고객사별 실패 정보 시뮬레이션 (연결 상태에 따라 다르게 처리)
+                    Map<String, String> failedCustomers = new HashMap<>();
+                    Map<String, String> failureReasons = new HashMap<>();
                     
+                    for (Customer customer : allCustomers) {
+                        String customerId = customer.getId();
+                        String customerName = customer.getName();
+                        
+                        if (customerConnectionStatus.get(customerId)) {
+                            // 연결 가능한 고객사: 네트워크 오류 시뮬레이션
+                            String failureReason = String.format("네트워크 오류 (시도 #%d)", i + 1);
+                            failedCustomers.put(customerId, failureReason);
+                            failureReasons.put(customerId, failureReason);
+                        } else {
+                            // 이미 연결된 고객사: 연결 해제 오류 시뮬레이션
+                            String failureReason = String.format("연결 해제됨 (시도 #%d)", i + 1);
+                            failedCustomers.put(customerId, failureReason);
+                            failureReasons.put(customerId, failureReason);
+                        }
+                    }
+                    
+                    // 실패 상태로 마킹
                     statusService.markAsFailed(
                         savedNews.getId(), 
-                        String.format("DLQ 테스트용 실패 #%d: 의도적인 실패", i + 1),
+                        String.format("DLQ 테스트용 실패 #%d: %d명 고객사 처리 실패", i + 1, allCustomers.size()),
                         "PROCESSING_ERROR",
                         failedCustomers,
-                        5 // 총 고객사 수
+                        allCustomers.size()
                     );
                     
                     if (i < retryCount - 1) {
@@ -414,29 +453,96 @@ public class NewsController {
                     }
                 }
                 
-                logger.info("DLQ 테스트 뉴스 생성 완료 (실패 시뮬레이션): {}", savedNews.getId());
+                // 고객사별 연결 상태 및 실패 정보 로깅
+                log.info("DLQ 테스트 뉴스 생성 완료 (실패 시뮬레이션): {}", savedNews.getId());
+                log.info("총 고객사 수: {}", allCustomers.size());
                 
-                return ResponseEntity.ok(new ApiResponse<>(
+                for (Customer customer : allCustomers) {
+                    String customerId = customer.getId();
+                    String customerName = customer.getName();
+                    boolean isConnected = customerConnectionStatus.get(customerId);
+                    String connectionDetail = connectionDetails.get(customerId);
+
+                    log.info("고객사 {} ({}): 연결 상태 = {}, 상세 = {}",
+                        customerName, customerId, isConnected ? "연결 가능" : "이미 연결됨", connectionDetail);
+                }
+                
+                return ResponseEntity.ok(new ApiResponse<Object>(
                     "SUCCESS",
-                    String.format("DLQ 테스트 뉴스가 생성되었습니다. %d회 실패 후 Dead Letter Queue로 이동 예정", retryCount),
-                    savedNews.getId()
+                    String.format("DLQ 테스트 뉴스가 생성되었습니다. %d명 고객사, %d회 실패 후 Dead Letter Queue로 이동 예정", 
+                        allCustomers.size(), retryCount),
+                    Map.of(
+                        "newsId", savedNews.getId(),
+                        "totalCustomers", allCustomers.size(),
+                        "retryCount", retryCount,
+                        "customerConnectionStatus", customerConnectionStatus,
+                        "connectionDetails", connectionDetails
+                    )
                 ));
             } else {
-                // 정상 처리
-                statusService.markAsCompleted(savedNews.getId());
+                // 정상 처리 시뮬레이션
+                // 연결된 고객사에게만 성공적으로 전송
+                Map<String, String> successfulCustomers = new HashMap<>();
+                Map<String, String> failedCustomers = new HashMap<>();
                 
-                logger.info("DLQ 테스트 뉴스 생성 완료 (정상 처리): {}", savedNews.getId());
+                for (Customer customer : allCustomers) {
+                    String customerId = customer.getId();
+                    String customerName = customer.getName();
+                    
+                    if (customerConnectionStatus.get(customerId)) {
+                        // 연결 가능한 고객사: 성공 처리
+                        successfulCustomers.put(customerId, "성공적으로 전송됨");
+                    } else {
+                        // 이미 연결된 고객사: 실패 처리 (연결 상태 오류)
+                        failedCustomers.put(customerId, "이미 연결된 고객사");
+                    }
+                }
                 
-                return ResponseEntity.ok(new ApiResponse<>(
-                    "SUCCESS",
-                    "DLQ 테스트 뉴스가 정상적으로 생성되고 처리되었습니다",
-                    savedNews.getId()
-                ));
+                if (!successfulCustomers.isEmpty()) {
+                    // 성공한 고객사가 있는 경우
+                    statusService.markAsCompleted(savedNews.getId());
+                    log.info("DLQ 테스트 뉴스 정상 처리 완료: {}명 고객사 성공, {}명 고객사 실패",
+                        successfulCustomers.size(), failedCustomers.size());
+                    
+                    return ResponseEntity.ok(new ApiResponse<Object>(
+                        "SUCCESS",
+                        String.format("DLQ 테스트 뉴스가 정상적으로 처리되었습니다. %d명 고객사 성공, %d명 고객사 실패", 
+                            successfulCustomers.size(), failedCustomers.size()),
+                        Map.of(
+                            "newsId", savedNews.getId(),
+                            "successfulCustomers", successfulCustomers,
+                            "failedCustomers", failedCustomers,
+                            "totalCustomers", allCustomers.size()
+                        )
+                    ));
+                } else {
+                    // 모든 고객사가 실패한 경우
+                    statusService.markAsFailed(
+                        savedNews.getId(),
+                        "모든 고객사가 이미 연결되어 있어 전송 실패",
+                        "CONNECTION_ERROR",
+                        failedCustomers,
+                        allCustomers.size()
+                    );
+
+                    log.info("DLQ 테스트 뉴스 처리 실패: 모든 고객사가 이미 연결됨");
+                    
+                    return ResponseEntity.ok(new ApiResponse<Object>(
+                        "SUCCESS",
+                        "DLQ 테스트 뉴스가 생성되었지만, 모든 고객사가 이미 연결되어 있어 전송에 실패했습니다.",
+                        Map.of(
+                            "newsId", savedNews.getId(),
+                            "failedCustomers", failedCustomers,
+                            "totalCustomers", allCustomers.size(),
+                            "failureReason", "모든 고객사가 이미 연결됨"
+                        )
+                    ));
+                }
             }
             
         } catch (Exception e) {
-            logger.error("DLQ 테스트 뉴스 생성 중 오류 발생", e);
-            return ResponseEntity.badRequest().body(new ApiResponse<>(
+            log.error("DLQ 테스트 뉴스 생성 중 오류 발생", e);
+            return ResponseEntity.badRequest().body(new ApiResponse<Object>(
                 "ERROR",
                 "DLQ 테스트 뉴스 생성 실패: " + e.getMessage(),
                 null
@@ -455,7 +561,7 @@ public class NewsController {
                 deadLetterNews
             ));
         } catch (Exception e) {
-            logger.error("Dead Letter Queue 조회 중 오류 발생", e);
+            log.error("Dead Letter Queue 조회 중 오류 발생", e);
             return ResponseEntity.internalServerError().body(new ApiResponse<>(
                 "ERROR",
                 "Dead Letter Queue 조회 실패: " + e.getMessage(),
@@ -475,7 +581,7 @@ public class NewsController {
                 stats
             ));
         } catch (Exception e) {
-            logger.error("Dead Letter Queue 통계 조회 중 오류 발생", e);
+            log.error("Dead Letter Queue 통계 조회 중 오류 발생", e);
             return ResponseEntity.internalServerError().body(new ApiResponse<>(
                 "ERROR",
                 "Dead Letter Queue 통계 조회 실패: " + e.getMessage(),
@@ -498,7 +604,7 @@ public class NewsController {
                 newsId
             ));
         } catch (Exception e) {
-            logger.error("Dead Letter 뉴스 제거 중 오류 발생: {}", newsId, e);
+            log.error("Dead Letter 뉴스 제거 중 오류 발생: {}", newsId, e);
             return ResponseEntity.internalServerError().body(new ApiResponse<>(
                 "ERROR",
                 "Dead Letter 뉴스 제거 실패: " + e.getMessage(),
@@ -552,7 +658,7 @@ public class NewsController {
             ));
             
         } catch (Exception e) {
-            logger.error("Dead Letter 뉴스 상세 정보 조회 중 오류 발생: {}", newsId, e);
+            log.error("Dead Letter 뉴스 상세 정보 조회 중 오류 발생: {}", newsId, e);
             return ResponseEntity.internalServerError().body(new ApiResponse<>(
                 "ERROR",
                 "Dead Letter 뉴스 상세 정보 조회 실패: " + e.getMessage(),
