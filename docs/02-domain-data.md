@@ -290,13 +290,13 @@ SELECT * FROM CUSTOMERS;
 
 ## 📝 체크리스트
 
-- [ ] `TranslatedNews` 엔티티가 올바르게 생성됨
-- [ ] `Customer` 엔티티가 올바르게 생성됨
-- [ ] JPA Repository가 정상적으로 동작함
-- [ ] 데이터베이스 스키마가 올바르게 생성됨
-- [ ] 초기 테스트 데이터가 정상적으로 삽입됨
-- [ ] 기본 CRUD 서비스가 정상적으로 동작함
-- [ ] 데이터베이스 연결이 안정적으로 유지됨
+- [x] `TranslatedNews` 엔티티가 올바르게 생성됨
+- [x] `Customer` 엔티티가 올바르게 생성됨
+- [x] JPA Repository가 정상적으로 동작함
+- [x] 데이터베이스 스키마가 올바르게 생성됨
+- [x] 초기 테스트 데이터가 정상적으로 삽입됨
+- [x] 기본 CRUD 서비스가 정상적으로 동작함
+- [x] 데이터베이스 연결이 안정적으로 유지됨
 
 ## 🚨 주의사항
 
@@ -305,9 +305,46 @@ SELECT * FROM CUSTOMERS;
 3. **트랜잭션**: 서비스 레이어에 적절한 트랜잭션 설정
 4. **데이터 무결성**: 외래키 제약조건 및 유니크 제약조건 설정
 
+## ✅ 완료된 작업
+
+### 1. 도메인 모델 구현
+- `TranslatedNews` 엔티티 클래스 생성 완료
+- `Customer` 엔티티 클래스 생성 완료
+- JPA 어노테이션을 사용한 데이터베이스 매핑 구현
+
+### 2. 데이터 접근 계층 구현
+- `TranslatedNewsRepository` 인터페이스 생성 완료
+- `CustomerRepository` 인터페이스 생성 완료
+- Spring Data JPA를 활용한 쿼리 메서드 구현
+
+### 3. 서비스 계층 구현
+- `TranslatedNewsService` 클래스 생성 완료
+- `CustomerService` 클래스 생성 완료
+- 트랜잭션 관리 및 비즈니스 로직 구현
+
+### 4. DTO 클래스 구현
+- `NewsDto` record 클래스 생성 완료
+- `CustomerDto` record 클래스 생성 완료
+- `CreateCustomerRequest` record 클래스 생성 완료
+
+### 5. 컨트롤러 구현
+- `NewsController` 생성 완료 (GET, POST 메서드)
+- `CustomerController` 생성 완료 (GET, POST 메서드)
+- RESTful API 엔드포인트 구현
+
+### 6. 데이터베이스 설정
+- PostgreSQL 데이터베이스 연결 설정 완료
+- `schema.sql` 및 `data.sql` 파일 생성 완료
+- Docker Compose 환경 구성 완료
+
+### 7. 테스트 및 검증
+- 애플리케이션 정상 실행 확인
+- API 엔드포인트 동작 확인
+- 데이터베이스 CRUD 작업 검증
+
 ## 🔗 다음 단계
 
-이 단계가 완료되면 다음 단계인 **Authentication** feature로 진행합니다.
+이 단계가 완료되었으므로 다음 단계인 **Authentication** feature로 진행합니다.
 
 ## 📚 참고 자료
 
