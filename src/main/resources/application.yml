@@ -43,6 +43,18 @@ spring:
     max-text-message-size: 8192
     max-binary-message-size: 8192
 
+# Swagger/OpenAPI 설정
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    doc-expansion: none
+    display-request-duration: true
+    filter: true
+
 server:
   port: 8080
   servlet:
@@ -102,6 +114,7 @@ websocket:
 logging:
   level:
     com.news.stream: DEBUG
+    com.news.stream.controller: DEBUG
     com.news.stream.queue: DEBUG
     com.news.stream.websocket: DEBUG
     org.springframework.web: DEBUG

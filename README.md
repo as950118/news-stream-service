@@ -372,8 +372,16 @@ docker-compose -f docker-compose.prod.yml up -d
 - 뉴스 처리 성능 모니터링 (Micrometer 메트릭)
 - 비동기 작업 설정 (TaskExecutor 구성)
 
+### ✅ Feature 7: REST API (REST API 구현)
+- 뉴스 관련 API 컨트롤러 (조회, 생성, 스트리밍, 배치 처리)
+- 고객사 관리 API 컨트롤러 (CRUD, 연결 상태 관리)
+- 시스템 상태 확인 API 컨트롤러 (헬스체크, 메트릭, 상태)
+- Swagger/OpenAPI 3.0 문서화
+- API 응답 표준화 (PageResponse, ApiResponse, 에러 응답)
+- 전역 예외 처리 및 입력값 검증
+- RESTful API 설계 원칙 준수
+
 ### 🔄 다음 구현 예정 기능
-- Feature 7: REST API (REST API 구현)
 - Feature 8: Monitoring (모니터링)
 - Feature 9: Testing (테스트)
 - Feature 10: Optimization (최적화) 

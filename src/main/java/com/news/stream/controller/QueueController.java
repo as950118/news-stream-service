@@ -43,7 +43,7 @@ public class QueueController {
         
         if (messageQueue instanceof LinkedBlockingMessageQueue) {
             LinkedBlockingMessageQueue linkedQueue = (LinkedBlockingMessageQueue) messageQueue;
-            response = QueueStatusResponse.of(
+            response = new QueueStatusResponse(
                 messageQueue.size(),
                 messageQueue.isEmpty(),
                 linkedQueue.getCapacity(),
@@ -51,7 +51,7 @@ public class QueueController {
             );
         } else {
             // 기본 구현체인 경우
-            response = QueueStatusResponse.of(
+            response = new QueueStatusResponse(
                 messageQueue.size(),
                 messageQueue.isEmpty(),
                 -1, // 용량 정보 없음
