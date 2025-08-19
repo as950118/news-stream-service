@@ -21,15 +21,15 @@ spring:
     console:
       enabled: true
   
-  redis:
-    host: localhost
-    port: 6379
-  
   # 큐 설정 (테스트용)
   queue:
     capacity: 100
     consumer-threads: 1
     poll-timeout: 100
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
 logging:
   level:

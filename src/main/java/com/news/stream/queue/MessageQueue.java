@@ -54,4 +54,11 @@ public interface MessageQueue<T> {
      * 큐의 모든 메시지를 제거합니다.
      */
     void clear();
+    
+    /**
+     * 큐의 최대 용량을 반환합니다.
+     * 
+     * @return 큐의 최대 용량
+     */
+    int getCapacity();
 }

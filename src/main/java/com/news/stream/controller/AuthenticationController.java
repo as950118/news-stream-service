@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1/customers")
+@RequestMapping("/api/v1/auth")
 @Validated
 public class AuthenticationController {
     
@@ -26,7 +26,7 @@ public class AuthenticationController {
         this.customerService = customerService;
     }
     
-    @PostMapping("/auth")
+    @PostMapping("/customers")
     public ResponseEntity<AuthenticationService.AuthResponse> authenticateCustomer(
         @Valid @RequestBody AuthRequest request) {
         
@@ -36,7 +36,7 @@ public class AuthenticationController {
         return ResponseEntity.ok(response);
     }
     
-    @GetMapping("/{id}/connections")
+    @GetMapping("/customers/{id}/connections")
     public ResponseEntity<ConnectionStatusResponse> getConnectionStatus(
         @PathVariable String id) {
         

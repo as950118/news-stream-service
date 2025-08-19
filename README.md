@@ -381,7 +381,15 @@ docker-compose -f docker-compose.prod.yml up -d
 - 전역 예외 처리 및 입력값 검증
 - RESTful API 설계 원칙 준수
 
+### ✅ Feature 8: Monitoring (모니터링) ✅
+- **Spring Boot Actuator**: 애플리케이션 헬스체크 및 메트릭 수집
+- **Prometheus 연동**: 메트릭 데이터 수집 및 모니터링 시스템 통합
+- **Micrometer**: 애플리케이션 메트릭 수집 라이브러리
+- **구조화된 로깅**: 체계적인 로그 관리 및 모니터링
+- **성능 모니터링**: AOP 기반 메서드 실행 시간 추적
+- **알림 시스템**: 시스템 헬스체크 및 임계값 기반 알림
+- **모니터링 대시보드 API**: 실시간 시스템 상태 조회
+
 ### 🔄 다음 구현 예정 기능
-- Feature 8: Monitoring (모니터링)
 - Feature 9: Testing (테스트)
 - Feature 10: Optimization (최적화) 

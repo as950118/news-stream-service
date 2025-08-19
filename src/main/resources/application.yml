@@ -2,11 +2,8 @@ spring:
   application:
     name: news-stream-service
   
-  profiles:
-    active: dev
-  
   datasource:
-    url: jdbc:postgresql://localhost:5433/alert_news
+    url: jdbc:postgresql://localhost:5432/alert_news
     username: postgres
     password: password
     driver-class-name: org.postgresql.Driver
@@ -29,19 +26,14 @@ spring:
       schema-locations: classpath:db/schema.sql
       data-locations: classpath:db/data.sql
   
-  redis:
-    host: localhost
-    port: 6380
-    timeout: 2000ms
-    lettuce:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
-  
   websocket:
     max-text-message-size: 8192
     max-binary-message-size: 8192
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
 
 # Swagger/OpenAPI 설정
 springdoc:
@@ -65,14 +57,26 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
+      base-path: /actuator
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: always
       show-components: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
   metrics:
     export:
       prometheus:
         enabled: true
+    web:
+      server:
+        request:
+          autotime:
+            enabled: true
+            percentiles: 0.5,0.95,0.99
+            percentiles-histogram: true
 
 # JWT 설정
 jwt:
@@ -113,13 +117,15 @@ websocket:
 
 logging:
   level:
-    com.news.stream: DEBUG
-    com.news.stream.controller: DEBUG
-    com.news.stream.queue: DEBUG
-    com.news.stream.websocket: DEBUG
-    org.springframework.web: DEBUG
-    org.springframework.web.socket: DEBUG
-    org.springframework.messaging: DEBUG
+    com.news.stream: INFO
+    com.news.stream.controller: INFO
+    com.news.stream.queue: INFO
+    com.news.stream.websocket: INFO
+    org.springframework.web: WARN
+    org.springframework.web.socket: WARN
+    org.springframework.messaging: WARN
+    org.springframework.boot.actuator: INFO
+    io.micrometer: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
   pattern:
@@ -127,5 +133,10 @@ logging:
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: logs/news-stream-service.log
-    max-size: 10MB
+    max-size: 100MB
     max-history: 30
+
+# Prometheus 설정
+prometheus:
+  enabled: true
+  endpoint: /actuator/prometheus

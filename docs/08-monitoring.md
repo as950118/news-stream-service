@@ -1,14 +1,14 @@
-# Feature 8: Monitoring (모니터링 및 운영 도구)
+# ✅ Feature 8: Monitoring (모니터링 및 운영 도구) - 완료
 
 ## 📋 개요
-Spring Actuator를 통한 시스템 모니터링, Prometheus 메트릭 수집, 로깅 시스템 구축을 통해 운영 환경에서의 시스템 상태를 실시간으로 모니터링하는 단계입니다.
+Spring Actuator를 통한 시스템 모니터링, Prometheus 메트릭 수집, 로깅 시스템 구축을 통해 운영 환경에서의 시스템 상태를 실시간으로 모니터링하는 시스템을 구현했습니다.
 
-## 🎯 목표
-- Spring Actuator 설정 및 헬스체크 엔드포인트 구현
-- Prometheus 메트릭 수집 및 노출
-- 로깅 시스템 구축 및 로그 레벨 관리
-- 시스템 성능 모니터링 및 알림
-- 운영 환경에서의 시스템 상태 실시간 모니터링
+## 🎯 완료된 목표
+- ✅ Spring Actuator 설정 및 헬스체크 엔드포인트 구현
+- ✅ Prometheus 메트릭 수집 및 노출
+- ✅ 로깅 시스템 구축 및 로그 레벨 관리
+- ✅ 시스템 성능 모니터링 및 알림
+- ✅ 운영 환경에서의 시스템 상태 실시간 모니터링
 
 ## 📁 작업 순서
 
@@ -776,15 +776,45 @@ curl -X POST http://localhost:8080/actuator/loggers/com.alert.news \
 curl http://localhost:8080/actuator/prometheus | grep -E "(news|queue|websocket)"
 ```
 
-## 📝 체크리스트
+## 📝 구현 완료 체크리스트
 
-- [ ] Spring Actuator가 정상적으로 설정됨
-- [ ] 커스텀 헬스체크가 정상적으로 동작함
-- [ ] Prometheus 메트릭이 정상적으로 수집됨
-- [ ] 로깅 시스템이 정상적으로 구축됨
-- [ ] 성능 모니터링이 정상적으로 동작함
-- [ ] 알림 시스템이 정상적으로 동작함
-- [ ] 모니터링 대시보드 API가 정상적으로 동작함
+- ✅ Spring Actuator가 정상적으로 설정됨
+- ✅ Prometheus 메트릭이 정상적으로 수집됨 (`build.gradle`에 의존성 추가)
+- ✅ 로깅 시스템이 정상적으로 구축됨 (`LoggingConfig`, `StructuredLogging`)
+- ✅ 성능 모니터링이 정상적으로 동작함 (`PerformanceMonitor`, `@Monitored`)
+- ✅ 알림 시스템이 정상적으로 동작함 (`AlertService`)
+- ✅ 모니터링 대시보드 API가 정상적으로 동작함 (`MonitoringDashboardController`)
+- ✅ 커스텀 메트릭 수집이 구현됨 (`CustomMetrics`)
+- ⚠️ 커스텀 헬스체크는 Spring Boot 자동 설정과의 충돌로 인해 임시 비활성화됨
+
+## 🎯 실제 구현된 기능
+
+### 1. 기본 모니터링 기능
+- **Spring Boot Actuator**: 기본 헬스체크 및 메트릭 엔드포인트
+- **Prometheus 통합**: `/actuator/prometheus` 엔드포인트에서 메트릭 노출
+- **기본 엔드포인트**: 
+  - `/actuator/health` - 애플리케이션 상태
+  - `/actuator/info` - 애플리케이션 정보
+  - `/actuator/metrics` - 시스템 메트릭
+  - `/actuator/prometheus` - Prometheus 포맷 메트릭
+
+### 2. 구조화된 로깅 시스템
+- **LoggingConfig**: 동적 로그 레벨 설정
+- **StructuredLogging**: 표준화된 로그 포맷
+- **로그 파일**: `logs/news-stream-service.log` (100MB, 30일 보관)
+
+### 3. 성능 모니터링
+- **PerformanceMonitor**: AOP 기반 메서드 실행 시간 추적
+- **@Monitored**: 성능 모니터링 대상 메서드 어노테이션
+- **CustomMetrics**: 커스텀 메트릭 수집 및 관리
+
+### 4. 알림 시스템
+- **AlertService**: 시스템 헬스체크 및 임계값 기반 알림
+- **스케줄링**: 주기적인 시스템 상태 점검
+
+### 5. 모니터링 대시보드 API
+- **MonitoringDashboardController**: REST API를 통한 시스템 상태 조회
+- **다양한 응답 DTO**: 구조화된 모니터링 데이터 제공
 
 ## 🚨 주의사항
 

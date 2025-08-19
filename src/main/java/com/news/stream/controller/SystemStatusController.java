@@ -88,10 +88,16 @@ public class SystemStatusController {
     public ResponseEntity<SystemMetricsResponse> getSystemMetrics() {
         
         try {
+            Runtime runtime = Runtime.getRuntime();
+            
             SystemMetricsResponse response = new SystemMetricsResponse(
-                getQueueMetrics(),
-                getWebSocketMetrics(),
-                getProcessingMetrics()
+                System.getProperty("java.version"),
+                System.getProperty("os.name"),
+                System.getProperty("os.version"),
+                runtime.totalMemory(),
+                runtime.freeMemory(),
+                runtime.maxMemory(),
+                System.currentTimeMillis()
             );
             
             return ResponseEntity.ok(response);

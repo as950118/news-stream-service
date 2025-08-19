@@ -24,19 +24,16 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/v1/customers")
+@RequestMapping("/api/v1/admin/customers")
 @Validated
 @Tag(name = "Customer Management", description = "고객사 관리 API")
 public class CustomerManagementController {
     
     private final CustomerService customerService;
-    private final AuthenticationService authenticationService;
     private final Logger logger = LoggerFactory.getLogger(CustomerManagementController.class);
     
-    public CustomerManagementController(CustomerService customerService,
-                                      AuthenticationService authenticationService) {
+    public CustomerManagementController(CustomerService customerService) {
         this.customerService = customerService;
-        this.authenticationService = authenticationService;
     }
     
     @PostMapping

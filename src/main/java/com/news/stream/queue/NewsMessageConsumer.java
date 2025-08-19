@@ -7,8 +7,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
+import org.springframework.context.event.EventListener;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.scheduling.annotation.Scheduled;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 뉴스 메시지 컨슈머
@@ -23,6 +26,8 @@ public class NewsMessageConsumer {
     
     @Value("${queue.poll-timeout:1000}")
     private long pollTimeout;
+    
+    private final AtomicBoolean isStarted = new AtomicBoolean(false);
     
     /**
      * 생성자
@@ -41,6 +46,11 @@ public class NewsMessageConsumer {
      */
     @Async("queueTaskExecutor")
     public void startConsuming() {
+        if (!isStarted.get()) {
+            logger.warn("컨슈머가 이미 시작되었거나 시작되지 않았습니다");
+            return;
+        }
+        
         logger.info("뉴스 메시지 컨슈머가 시작되었습니다");
         
         while (!Thread.currentThread().isInterrupted()) {
@@ -136,10 +146,23 @@ public class NewsMessageConsumer {
     }
     
     /**
-     * 컨슈머 초기화 시 메시지 소비를 시작합니다.
+     * 애플리케이션이 완전히 시작된 후 메시지 소비를 시작합니다.
+     * ApplicationReadyEvent를 사용하여 애플리케이션 시작 지연을 방지합니다.
      */
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     public void init() {
-        startConsuming();
+        logger.info("애플리케이션이 시작되었습니다. 컨슈머를 3초 후에 시작합니다.");
+    }
+    
+    /**
+     * 애플리케이션 시작 후 3초 후에 컨슈머를 시작합니다.
+     * 이 방법으로 애플리케이션 시작 지연을 방지합니다.
+     */
+    @Scheduled(fixedDelay = 3000, initialDelay = 3000)
+    public void startConsumerIfNotStarted() {
+        if (isStarted.compareAndSet(false, true)) {
+            logger.info("뉴스 메시지 컨슈머를 시작합니다");
+            startConsuming();
+        }
     }
 }
