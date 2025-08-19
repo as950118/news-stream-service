@@ -337,78 +337,7 @@ docker-compose -f docker-compose.prod.yml up -d
 
 **Note**: 이 프로젝트는 실시간 뉴스 전송 시스템을 학습하고 구현해보는 토이프로젝트입니다. WebSocket, 메시지 큐, 실시간 통신, JWT 인증 등 다양한 기술을 직접 구현해보며 백엔드 개발 실력을 키워봅시다! 🚀 
 
-## 🎉 구현 완료된 기능
-
-### ✅ Feature 3: Authentication (고객사 인증 시스템)
-- JWT 토큰 기반 인증 시스템
-- 고객사별 연결 제한 (1고객사 1연결)
-- Spring Security 설정
-- WebSocket 인증 인터셉터
-- 전역 예외 처리
-
-### ✅ Feature 4: Message Queue (메시지 큐 시스템)
-- LinkedBlockingQueue 기반 내부 메시지 큐 시스템
-- Producer-Consumer 패턴으로 뉴스 ID 처리
-- 큐 모니터링 및 메트릭 수집
-- 향후 AWS SQS 전환을 고려한 인터페이스 설계
-- 큐 상태 확인 및 제어 API
-
-### ✅ Feature 5: WebSocket (실시간 통신)
-- WebSocket 설정 및 STOMP 메시지 브로커 구성
-- WebSocket 이벤트 핸들러 (연결, 해제, 구독 이벤트)
-- 뉴스 스트림 서비스 (실시간 뉴스 브로드캐스트)
-- WebSocket 연결 관리 및 세션 관리
-- WebSocket 인증 인터셉터 (JWT 토큰 검증)
-- WebSocket 메트릭 수집 및 모니터링
-- WebSocket 상태 확인 API
-- WebSocket 컨트롤러 (메시지 처리)
-
-### ✅ Feature 6: News Service (뉴스 서비스)
-- 뉴스 스트림 통합 서비스 (메시지 큐와 WebSocket 연동)
-- 뉴스 배치 처리 서비스 (대량 뉴스 처리 최적화)
-- 뉴스 스케줄링 서비스 (정기적 뉴스 처리)
-- 뉴스 처리 상태 관리 (처리 상태 추적)
-- 뉴스 재처리 서비스 (실패한 뉴스 재처리)
-- 뉴스 처리 성능 모니터링 (Micrometer 메트릭)
-- 비동기 작업 설정 (TaskExecutor 구성)
-
-### ✅ Feature 7: REST API (REST API 구현)
-- 뉴스 관련 API 컨트롤러 (조회, 생성, 스트리밍, 배치 처리)
-- 고객사 관리 API 컨트롤러 (CRUD, 연결 상태 관리)
-- 시스템 상태 확인 API 컨트롤러 (헬스체크, 메트릭, 상태)
-- Swagger/OpenAPI 3.0 문서화
-- API 응답 표준화 (PageResponse, ApiResponse, 에러 응답)
-- 전역 예외 처리 및 입력값 검증
-- RESTful API 설계 원칙 준수
-
-### ✅ Feature 8: Monitoring (모니터링) ✅
-- **Spring Boot Actuator**: 애플리케이션 헬스체크 및 메트릭 수집
-- **Prometheus 연동**: 메트릭 데이터 수집 및 모니터링 시스템 통합
-- **Micrometer**: 애플리케이션 메트릭 수집 라이브러리
-- **구조화된 로깅**: 체계적인 로그 관리 및 모니터링
-- **성능 모니터링**: AOP 기반 메서드 실행 시간 추적
-- **알림 시스템**: 시스템 헬스체크 및 임계값 기반 알림
-- **모니터링 대시보드 API**: 실시간 시스템 상태 조회
-
-### ✅ Feature 9: Testing (테스트 및 품질 보증) ✅
-- **단위 테스트**: JUnit 5, Mockito, AssertJ를 활용한 서비스 계층 테스트
-- **테스트 커버리지**: JaCoCo를 통한 코드 커버리지 측정 및 리포트 생성
-- **테스트 유틸리티**: TestDataBuilder, WebSocketTestClient 등 테스트 헬퍼 클래스
-- **통합 테스트**: Testcontainers를 활용한 PostgreSQL 통합 테스트
-- **부하 테스트**: 동시성 및 성능 테스트 시나리오 구현
-- **CI/CD 파이프라인**: GitHub Actions를 통한 자동화된 테스트 및 빌드
-- **테스트 자동화**: Gradle 태스크를 통한 테스트 실행 자동화
-
-### ✅ Feature 10: Optimization (최적화 및 성능 개선) ✅
-- **성능 프로파일링**: AOP 기반 메서드 실행 시간 모니터링 및 메트릭 수집
-- **데이터베이스 최적화**: HikariCP 커넥션 풀 최적화 및 Hibernate 배치 처리 설정
-- **Redis 캐싱**: 뉴스 데이터 캐싱 전략으로 응답 시간 단축
-- **메모리 최적화**: JVM 메모리 사용량 모니터링 및 자동 최적화
-- **동시성 최적화**: 작업 유형별 전용 TaskExecutor로 처리량 향상
-- **성능 모니터링 대시보드**: 실시간 성능 메트릭 조회 및 수동 최적화 실행
-- **데이터베이스 인덱싱**: PostgreSQL 인덱스 최적화로 쿼리 성능 향상
-
-### 🎉 모든 Feature 구현 완료! 🎉
+---
 
 ## 🔐 JWT 인증 시스템 구현 가이드
 
@@ -543,3 +472,238 @@ public class NewsService {
 4. **HTTPS 강제**: 프로덕션 환경에서 HTTPS 사용
 
 이 가이드를 따라 구현하면 REST API에서도 JWT 기반 인증을 완벽하게 적용할 수 있습니다.
+
+## 🚀 AWS SQS 마이그레이션 가이드
+
+### 📋 개요
+
+현재 시스템은 로컬 메시지 큐(LinkedBlockingQueue)를 사용하고 있으며, AWS SQS로 마이그레이션할 수 있도록 설계되어 있습니다. DDD(도메인 주도 설계) 원칙을 잘 따르고 있어 마이그레이션이 상당히 수월합니다.
+
+### 🎯 마이그레이션 전략
+
+#### **현재 아키텍처의 장점**
+- ✅ **인터페이스 분리**: `MessageQueue<T>` 인터페이스로 완벽하게 추상화
+- ✅ **의존성 역전**: 구체 구현체가 아닌 인터페이스에 의존
+- ✅ **단일 책임**: Producer, Consumer, Queue가 명확히 분리
+- ✅ **설정 분리**: `QueueConfig`로 큐 관련 설정 중앙화
+
+#### **마이그레이션 단계**
+1. **Phase 1**: AWS SQS 구현체 추가 ✅
+2. **Phase 2**: 설정 기반 전환 ✅
+3. **Phase 3**: 점진적 전환 (개발→스테이징→프로덕션)
+
+### 🔧 구현된 구성요소
+
+#### **1. AwsSqsMessageQueue**
+```java
+@Component
+@Profile("aws-sqs")
+public class AwsSqsMessageQueue implements MessageQueue<NewsMessage> {
+    // AWS SQS 기반 메시지 큐 구현체
+    // JSON 직렬화/역직렬화, 메시지 속성 지원, 에러 처리
+}
+```
+
+#### **2. AwsSqsConfig**
+```java
+@Configuration
+@Profile("aws-sqs")
+public class AwsSqsConfig {
+    @Bean
+    public AmazonSQS sqsClient() {
+        // SQS 클라이언트 설정
+        // 로컬 테스트를 위한 endpoint 설정 지원
+    }
+}
+```
+
+#### **3. 프로파일 기반 설정**
+- `local`: 기존 로컬 큐 사용
+- `aws-sqs`: AWS SQS 사용
+
+### 🚀 사용 방법
+
+#### **로컬 개발 환경 (LocalStack)**
+
+1. **LocalStack 실행**
+```bash
+docker run -d --name localstack \
+  -p 4566:4566 \
+  -e SERVICES=sqs \
+  localstack/localstack
+```
+
+2. **SQS 큐 생성**
+```bash
+# AWS CLI 설치 (로컬 테스트용)
+pip install awscli-local
+
+# 큐 생성
+awslocal sqs create-queue --queue-name news-queue
+
+# 큐 URL 확인
+awslocal sqs get-queue-url --queue-name news-queue
+```
+
+3. **환경 변수 설정**
+```bash
+export AWS_SQS_ENDPOINT=http://localhost:4566
+export AWS_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_SQS_QUEUE_URL=http://localhost:4566/000000000000/news-queue
+```
+
+4. **애플리케이션 실행**
+```bash
+./gradlew bootRun --args='--spring.profiles.active=aws-sqs'
+```
+
+#### **AWS 프로덕션 환경**
+
+1. **AWS 자격 증명 설정**
+```bash
+export AWS_REGION=ap-northeast-2
+export AWS_ACCESS_KEY_ID=your-access-key
+export AWS_SECRET_ACCESS_KEY=your-secret-key
+export AWS_SQS_QUEUE_URL=https://sqs.ap-northeast-2.amazonaws.com/...
+```
+
+2. **애플리케이션 실행**
+```bash
+./gradlew bootRun --args='--spring.profiles.active=aws-sqs'
+```
+
+### 📊 모니터링 및 메트릭
+
+#### **SQS 전용 메트릭**
+- `queue.sqs.send.time`: 메시지 전송 시간
+- `queue.sqs.receive.time`: 메시지 수신 시간
+- `queue.sqs.delete.time`: 메시지 삭제 시간
+- `queue.messages.enqueued`: 큐잉된 메시지 수
+- `queue.messages.dequeued`: 디큐잉된 메시지 수
+
+#### **CloudWatch 연동**
+```yaml
+# CloudWatch 메트릭 내보내기
+management:
+  metrics:
+    export:
+      cloudwatch:
+        enabled: true
+        namespace: news-stream-service
+```
+
+### 🔄 마이그레이션 체크리스트
+
+#### **사전 준비**
+- [ ] AWS 계정 및 IAM 권한 설정
+- [ ] SQS 큐 생성 및 설정
+- [ ] 환경 변수 및 설정 파일 준비
+- [ ] 로컬 테스트 환경 구축 (LocalStack)
+
+#### **코드 변경**
+- [x] AWS SDK SQS 의존성 추가
+- [x] `AwsSqsMessageQueue` 구현체 생성
+- [x] `AwsSqsConfig` 설정 클래스 생성
+- [x] 프로파일 기반 설정 분리
+
+#### **테스트**
+- [ ] 단위 테스트 작성
+- [ ] 통합 테스트 실행
+- [ ] 성능 테스트 수행
+- [ ] 장애 복구 테스트
+
+#### **배포**
+- [ ] 개발 환경 배포 및 검증
+- [ ] 스테이징 환경 배포 및 검증
+- [ ] 프로덕션 환경 점진적 전환
+- [ ] 모니터링 및 알림 설정
+
+### 🚨 주의사항
+
+#### **1. 메시지 순서**
+- SQS Standard Queue는 메시지 순서를 보장하지 않음
+- 순서가 중요한 경우 SQS FIFO Queue 사용 고려
+
+#### **2. 메시지 중복**
+- SQS는 최소 1회 전달을 보장
+- 멱등성(Idempotency) 고려 필요
+
+#### **3. 비용 최적화**
+- 메시지 크기 제한 (256KB)
+- 배치 처리 활용
+- Dead Letter Queue 설정
+
+#### **4. 보안**
+- IAM 역할 및 정책 최소 권한 원칙
+- VPC 엔드포인트 사용 고려
+- 암호화 전송 및 저장
+
+### 📈 성능 최적화
+
+#### **1. 배치 처리**
+```java
+// 배치로 메시지 전송
+SendMessageBatchRequest batchRequest = new SendMessageBatchRequest()
+    .withQueueUrl(queueUrl)
+    .withEntries(entries);
+```
+
+#### **2. Long Polling**
+```java
+// 긴 폴링으로 대기 시간 단축
+ReceiveMessageRequest request = new ReceiveMessageRequest()
+    .withWaitTimeSeconds(20); // 최대 20초 대기
+```
+
+#### **3. 가시성 타임아웃**
+```java
+// 메시지 처리 시간에 맞춘 가시성 타임아웃
+ChangeMessageVisibilityRequest request = new ChangeMessageVisibilityRequest()
+    .withVisibilityTimeout(60); // 60초
+```
+
+### 🔍 문제 해결
+
+#### **일반적인 오류**
+
+| 오류 코드 | 원인 | 해결 방법 |
+|-----------|------|-----------|
+| `AccessDenied` | IAM 권한 부족 | IAM 정책 확인 및 수정 |
+| `InvalidParameterValue` | 잘못된 파라미터 | 요청 파라미터 검증 |
+| `QueueDoesNotExist` | 큐 URL 오류 | 큐 URL 확인 |
+| `ThrottlingException` | 요청 제한 초과 | 지수 백오프 적용 |
+
+#### **디버깅 팁**
+```bash
+# AWS CLI로 큐 상태 확인
+aws sqs get-queue-attributes \
+  --queue-url $QUEUE_URL \
+  --attribute-names All
+
+# CloudWatch 로그 확인
+aws logs filter-log-events \
+  --log-group-name /aws/lambda/your-function \
+  --start-time $(date -d '1 hour ago' +%s)000
+```
+
+### 📚 추가 리소스
+
+- [AWS SQS 개발자 가이드](https://docs.aws.amazon.com/sqs/)
+- [Spring Cloud AWS 문서](https://spring.io/projects/spring-cloud-aws)
+- [AWS SDK for Java](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/)
+- [LocalStack 문서](https://docs.localstack.cloud/)
+
+### 🎉 결론
+
+DDD 기반으로 잘 설계된 현재 시스템은 AWS SQS 마이그레이션에 매우 적합합니다. 인터페이스 분리와 의존성 역전 원칙 덕분에:
+
+1. **최소한의 코드 변경**으로 마이그레이션 가능
+2. **프로파일 기반**으로 점진적 전환
+3. **기존 비즈니스 로직**에 영향 없음
+4. **확장성과 안정성** 향상
+
+체계적인 접근과 충분한 테스트를 통해 안전하고 효율적인 마이그레이션을 진행할 수 있습니다.
+
+---
