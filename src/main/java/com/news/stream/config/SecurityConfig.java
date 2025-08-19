@@ -31,7 +31,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/customers").permitAll() // 테스트를 위해 고객사 생성 허용
                 .requestMatchers("/api/v1/customers/**").permitAll() // 테스트를 위해 고객사 관련 API 허용
                 .requestMatchers("/api/v1/news").permitAll() // 테스트를 위해 뉴스 관련 API 허용. 추후 관리자 계정 등으로 관리하거나 게이트웨이를 두어 미노출.
-                .requestMatchers("/api/v1/news/").permitAll() // 테스트를 위해 뉴스 관련 API 허용. 추후 관리자 계정 등으로 관리하거나 게이트웨이를 두어 미노출.
+                .requestMatchers("/api/v1/news/**").permitAll() // 테스트를 위해 뉴스 관련 API 허용. 추후 관리자 계정 등으로 관리하거나 게이트웨이를 두어 미노출.
                 .requestMatchers("/api/v1/customers/auth").permitAll()
                 .requestMatchers("/api/v1/queue/**").permitAll() // 테스트를 위해 큐 API 허용
                 .requestMatchers("/actuator/**").permitAll()
