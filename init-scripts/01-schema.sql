@@ -1,3 +1,11 @@
+-- PostgreSQL 초기화 스크립트
+-- 데이터베이스 스키마 생성
+
+-- 기존 테이블이 있다면 삭제 (개발 환경용)
+DROP TABLE IF EXISTS NEWS_PROCESSING_STATUS CASCADE;
+DROP TABLE IF EXISTS CUSTOMERS CASCADE;
+DROP TABLE IF EXISTS TRANSLATED_NEWS CASCADE;
+
 -- TRANSLATED_NEWS 테이블
 CREATE TABLE IF NOT EXISTS TRANSLATED_NEWS (
     id VARCHAR(255) PRIMARY KEY,
@@ -44,3 +52,9 @@ CREATE INDEX IF NOT EXISTS idx_customers_connection_id ON CUSTOMERS(connection_i
 CREATE INDEX IF NOT EXISTS idx_news_processing_status ON NEWS_PROCESSING_STATUS(status);
 CREATE INDEX IF NOT EXISTS idx_news_processing_created_at ON NEWS_PROCESSING_STATUS(created_at);
 CREATE INDEX IF NOT EXISTS idx_news_processing_updated_at ON NEWS_PROCESSING_STATUS(updated_at);
+
+-- 스키마 생성 완료 로그
+DO $$
+BEGIN
+    RAISE NOTICE 'Database schema initialization completed successfully';
+END $$;
