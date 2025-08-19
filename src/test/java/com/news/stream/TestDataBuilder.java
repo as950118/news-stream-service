@@ -18,12 +18,16 @@ public class TestDataBuilder {
      */
     public static TranslatedNews createTranslatedNews(String id) {
         TranslatedNews news = new TranslatedNews();
-        news.setId(id != null ? id : "test-news-" + System.currentTimeMillis());
-        news.setTitle("테스트 뉴스 제목");
-        news.setContent("테스트 뉴스 내용입니다.");
-        news.setPublishedAt(LocalDateTime.now());
-        news.setCreatedAt(LocalDateTime.now());
-        news.setUpdatedAt(LocalDateTime.now());
+        String newsId = id != null ? id : "test-news-" + System.currentTimeMillis();
+        LocalDateTime now = LocalDateTime.now();
+        
+        news.setId(newsId);
+        news.setTitle("테스트 뉴스 제목 - " + newsId);
+        news.setContent("테스트 뉴스 내용입니다. ID: " + newsId);
+        news.setPublishedAt(now);
+        news.setCreatedAt(now);
+        news.setUpdatedAt(now);
+        
         return news;
     }
     
@@ -32,12 +36,16 @@ public class TestDataBuilder {
      */
     public static Customer createCustomer(String id) {
         Customer customer = new Customer();
-        customer.setId(id != null ? id : "customer-" + System.currentTimeMillis());
-        customer.setName("테스트 고객사");
-        customer.setToken("test-token-" + System.currentTimeMillis());
+        String customerId = id != null ? id : "customer-" + System.currentTimeMillis();
+        LocalDateTime now = LocalDateTime.now();
+        
+        customer.setId(customerId);
+        customer.setName("테스트 고객사 - " + customerId);
+        customer.setToken("test-token-" + customerId);
         customer.setActive(true);
-        customer.setCreatedAt(LocalDateTime.now());
-        customer.setUpdatedAt(LocalDateTime.now());
+        customer.setCreatedAt(now);
+        customer.setUpdatedAt(now);
+        
         return customer;
     }
     
@@ -45,11 +53,10 @@ public class TestDataBuilder {
      * NewsMessage 테스트 데이터 생성
      */
     public static NewsMessage createNewsMessage(String newsId, NewsMessage.MessageType type) {
-        return new NewsMessage(
-            newsId != null ? newsId : "test-news-" + System.currentTimeMillis(),
-            LocalDateTime.now(),
-            type != null ? type : NewsMessage.MessageType.NEWS_CREATED
-        );
+        String messageId = newsId != null ? newsId : "test-news-" + System.currentTimeMillis();
+        NewsMessage.MessageType messageType = type != null ? type : NewsMessage.MessageType.NEWS_CREATED;
+        
+        return new NewsMessage(messageId, LocalDateTime.now(), messageType);
     }
     
     /**

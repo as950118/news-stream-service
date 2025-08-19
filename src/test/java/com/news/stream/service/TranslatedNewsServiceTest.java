@@ -34,6 +34,15 @@ class TranslatedNewsServiceTest {
     @Mock
     private TranslatedNewsRepository newsRepository;
     
+    @Mock
+    private CustomMetrics customMetrics;
+    
+    @Mock
+    private StructuredLogging structuredLogging;
+    
+    @Mock
+    private NewsProcessingStatusService statusService;
+    
     @InjectMocks
     private TranslatedNewsService newsService;
     
