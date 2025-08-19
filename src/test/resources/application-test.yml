@@ -2,16 +2,30 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
+        dialect: org.hibernate.dialect.H2Dialect
+        globally_quoted_identifiers: false
+        hbm2ddl:
+          auto: create-drop
+        use_sql_comments: false
+        jdbc:
+          lob:
+            non_contextual_creation: true
   
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=LEGACY;INIT=CREATE SCHEMA IF NOT EXISTS public
     username: sa
     password: 
     driver-class-name: org.h2.Driver
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 1
+      connection-timeout: 5000
+      idle-timeout: 10000
+      max-lifetime: 20000
   
   sql:
     init:
@@ -19,22 +33,40 @@ spring:
   
   h2:
     console:
-      enabled: true
+      enabled: false
+  
+  # Redis 설정 완전 비활성화
+  redis:
+    enabled: false
+  
+  # 캐시 설정 비활성화
+  cache:
+    type: none
   
   # 큐 설정 (테스트용)
   queue:
     capacity: 100
     consumer-threads: 1
     poll-timeout: 100
-  data:
-    redis:
-      host: localhost
-      port: 6379
+  
+  # 테스트 환경에서 불필요한 기능 비활성화
+  main:
+    allow-bean-definition-overriding: true
+    allow-circular-references: true
+  
+  # 테스트 환경에서 Redis 관련 설정 비활성화
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.cache.RedisCacheAutoConfiguration
 
 logging:
   level:
-    com.news.stream: DEBUG
-    org.springframework.web: DEBUG
+    com.news.stream: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework.boot.autoconfigure.data.redis: OFF
 
 management:
   endpoints:

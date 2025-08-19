@@ -17,7 +17,6 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.util.StringUtils;
@@ -55,17 +54,21 @@ public class RedisConfig {
     }
     
     @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
-        
-        // JSON 직렬화 설정
-        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
+    public ObjectMapper redisObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         mapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, 
             ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
-        serializer.setObjectMapper(mapper);
+        return mapper;
+    }
+    
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory, ObjectMapper redisObjectMapper) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        
+        // GenericJackson2JsonRedisSerializer 사용 (deprecated 메서드 사용하지 않음)
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(redisObjectMapper);
         
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(serializer);
@@ -77,11 +80,11 @@ public class RedisConfig {
     }
     
     @Bean
-    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+    public CacheManager cacheManager(RedisConnectionFactory connectionFactory, ObjectMapper redisObjectMapper) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(Duration.ofMinutes(30)) // 기본 TTL 30분
             .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-            .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()))
+            .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer(redisObjectMapper)))
             .disableCachingNullValues();
         
         return RedisCacheManager.builder(connectionFactory)

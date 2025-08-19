@@ -1,0 +1,71 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        hbm2ddl:
+          auto: create-drop
+        use_sql_comments: false
+        jdbc:
+          lob:
+            non_contextual_creation: true
+  
+  datasource:
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 1
+      connection-timeout: 10000
+      idle-timeout: 30000
+      max-lifetime: 60000
+      leak-detection-threshold: 60000
+      connection-test-query: SELECT 1
+  
+  # Redis 설정 (통합 테스트용)
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 5000
+    database: 1
+  
+  # 캐시 설정
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60000
+  
+  # 큐 설정 (통합 테스트용)
+  queue:
+    capacity: 100
+    consumer-threads: 1
+    poll-timeout: 100
+  
+  # 테스트 환경에서 불필요한 기능 비활성화
+  main:
+    allow-bean-definition-overriding: true
+    allow-circular-references: true
+
+# 로깅 설정
+logging:
+  level:
+    com.news.stream: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework.messaging: WARN
+    org.springframework.web.socket: WARN
+    org.springframework.data.redis: WARN
+    org.hikari: WARN
+    org.testcontainers: WARN
+
+# 테스트 환경 설정
+test:
+  cleanup:
+    enabled: true
+    timeout: 30000
+  database:
+    cleanup: true
+    drop-schema: true
