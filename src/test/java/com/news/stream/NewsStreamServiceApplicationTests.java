@@ -10,8 +10,8 @@ import org.springframework.test.context.ActiveProfiles;
  * @author News Stream Service Team
  * @version 1.0.0
  */
-//@SpringBootTest
-//@ActiveProfiles("test")
+@SpringBootTest
+@ActiveProfiles("test")
 class NewsStreamServiceApplicationTests {
 
     @Test

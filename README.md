@@ -390,6 +390,14 @@ docker-compose -f docker-compose.prod.yml up -d
 - **알림 시스템**: 시스템 헬스체크 및 임계값 기반 알림
 - **모니터링 대시보드 API**: 실시간 시스템 상태 조회
 
+### ✅ Feature 9: Testing (테스트 및 품질 보증) ✅
+- **단위 테스트**: JUnit 5, Mockito, AssertJ를 활용한 서비스 계층 테스트
+- **테스트 커버리지**: JaCoCo를 통한 코드 커버리지 측정 및 리포트 생성
+- **테스트 유틸리티**: TestDataBuilder, WebSocketTestClient 등 테스트 헬퍼 클래스
+- **통합 테스트**: Testcontainers를 활용한 PostgreSQL 통합 테스트
+- **부하 테스트**: 동시성 및 성능 테스트 시나리오 구현
+- **CI/CD 파이프라인**: GitHub Actions를 통한 자동화된 테스트 및 빌드
+- **테스트 자동화**: Gradle 태스크를 통한 테스트 실행 자동화
+
 ### 🔄 다음 구현 예정 기능
-- Feature 9: Testing (테스트)
 - Feature 10: Optimization (최적화) 

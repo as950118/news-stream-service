@@ -1,0 +1,46 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:tc:postgresql:15://localhost/test_db
+    username: test_user
+    password: test_password
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  
+  security:
+    jwt:
+      secret: test-jwt-secret-key-for-testing-purposes-only
+      expiration-hours: 24
+  
+  websocket:
+    endpoint: /ws/news
+    max-connections-per-customer: 1
+  
+  queue:
+    capacity: 1000
+    consumer-threads: 2
+    poll-timeout: 1000
+
+logging:
+  level:
+    com.news.stream: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.messaging: DEBUG
+    org.testcontainers: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
