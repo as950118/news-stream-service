@@ -1,5 +1,7 @@
 package com.news.stream.queue;
 
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -7,8 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,13 +25,13 @@ public class AwsSqsMessageQueue implements MessageQueue<NewsMessage> {
     private static final Logger logger = LoggerFactory.getLogger(AwsSqsMessageQueue.class);
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
     
-    private final SqsClient sqsClient;
+    private final AmazonSQS sqsClient;
     private final String queueUrl;
     private final ObjectMapper objectMapper;
     private final int maxReceiveCount;
     
     public AwsSqsMessageQueue(
-            SqsClient sqsClient,
+            AmazonSQS sqsClient,
             @Value("${queue.aws.sqs.queue-url}") String queueUrl,
             @Value("${queue.aws.sqs.max-receive-count:3}") int maxReceiveCount) {
         this.sqsClient = sqsClient;
@@ -48,20 +48,19 @@ public class AwsSqsMessageQueue implements MessageQueue<NewsMessage> {
         try {
             String messageBody = objectMapper.writeValueAsString(message);
             
-            SendMessageRequest request = SendMessageRequest.builder()
-                    .queueUrl(queueUrl)
-                    .messageBody(messageBody)
-                    .messageAttributes(createMessageAttributes(message))
-                    .build();
+            SendMessageRequest request = new SendMessageRequest()
+                    .withQueueUrl(queueUrl)
+                    .withMessageBody(messageBody)
+                    .withMessageAttributes(createMessageAttributes(message));
             
-            SendMessageResponse response = sqsClient.sendMessage(request);
+            SendMessageResult result = sqsClient.sendMessage(request);
             logger.debug("메시지가 SQS에 전송되었습니다: messageId={}, newsId={}", 
-                    response.messageId(), message.newsId());
+                    result.getMessageId(), message.newsId());
                     
         } catch (JsonProcessingException e) {
             logger.error("메시지 직렬화 실패: {}", message, e);
             throw new RuntimeException("메시지 직렬화 실패", e);
-        } catch (SqsException e) {
+        } catch (AmazonSQSException e) {
             logger.error("SQS 메시지 전송 실패: {}", message, e);
             throw new RuntimeException("SQS 메시지 전송 실패", e);
         }
@@ -75,20 +74,19 @@ public class AwsSqsMessageQueue implements MessageQueue<NewsMessage> {
     @Override
     public NewsMessage dequeue(long timeout, TimeUnit unit) throws InterruptedException {
         try {
-            ReceiveMessageRequest request = ReceiveMessageRequest.builder()
-                    .queueUrl(queueUrl)
-                    .maxNumberOfMessages(1)
-                    .waitTimeSeconds((int) unit.toSeconds(timeout))
-                    .messageAttributeNames("All")
-                    .build();
+            ReceiveMessageRequest request = new ReceiveMessageRequest()
+                    .withQueueUrl(queueUrl)
+                    .withMaxNumberOfMessages(1)
+                    .withWaitTimeSeconds((int) unit.toSeconds(timeout))
+                    .withMessageAttributeNames("All");
             
-            ReceiveMessageResponse response = sqsClient.receiveMessage(request);
+            ReceiveMessageResult result = sqsClient.receiveMessage(request);
             
-            if (response.messages().isEmpty()) {
+            if (result.getMessages().isEmpty()) {
                 return null;
             }
             
-            Message sqsMessage = response.messages().get(0);
+            Message sqsMessage = result.getMessages().get(0);
             NewsMessage newsMessage = deserializeMessage(sqsMessage);
             
             // 메시지 삭제 (처리 완료)
@@ -96,7 +94,7 @@ public class AwsSqsMessageQueue implements MessageQueue<NewsMessage> {
             
             return newsMessage;
             
-        } catch (SqsException e) {
+        } catch (AmazonSQSException e) {
             logger.error("SQS 메시지 수신 실패", e);
             throw new RuntimeException("SQS 메시지 수신 실패", e);
         }
@@ -105,16 +103,15 @@ public class AwsSqsMessageQueue implements MessageQueue<NewsMessage> {
     @Override
     public int size() {
         try {
-            GetQueueAttributesRequest request = GetQueueAttributesRequest.builder()
-                    .queueUrl(queueUrl)
-                    .attributeNames(QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES)
-                    .build();
+            GetQueueAttributesRequest request = new GetQueueAttributesRequest()
+                    .withQueueUrl(queueUrl)
+                    .withAttributeNames("ApproximateNumberOfMessages");
             
-            GetQueueAttributesResponse response = sqsClient.getQueueAttributes(request);
-            String countStr = response.attributes().get(QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES);
+            GetQueueAttributesResult result = sqsClient.getQueueAttributes(request);
+            String countStr = result.getAttributes().get("ApproximateNumberOfMessages");
             return countStr != null ? Integer.parseInt(countStr) : 0;
             
-        } catch (SqsException e) {
+        } catch (AmazonSQSException e) {
             logger.error("SQS 큐 크기 조회 실패", e);
             return 0;
         }
@@ -130,24 +127,23 @@ public class AwsSqsMessageQueue implements MessageQueue<NewsMessage> {
         // SQS에서는 개별 메시지 삭제만 가능하므로 모든 메시지를 폴링하여 삭제
         try {
             while (true) {
-                ReceiveMessageRequest request = ReceiveMessageRequest.builder()
-                        .queueUrl(queueUrl)
-                        .maxNumberOfMessages(10)
-                        .waitTimeSeconds(0)
-                        .build();
+                ReceiveMessageRequest request = new ReceiveMessageRequest()
+                        .withQueueUrl(queueUrl)
+                        .withMaxNumberOfMessages(10)
+                        .withWaitTimeSeconds(0);
                 
-                ReceiveMessageResponse response = sqsClient.receiveMessage(request);
-                if (response.messages().isEmpty()) {
+                ReceiveMessageResult result = sqsClient.receiveMessage(request);
+                if (result.getMessages().isEmpty()) {
                     break;
                 }
                 
                 // 모든 메시지 삭제
-                for (Message message : response.messages()) {
+                for (Message message : result.getMessages()) {
                     deleteMessage(message);
                 }
             }
             logger.info("SQS 큐가 비워졌습니다");
-        } catch (SqsException e) {
+        } catch (AmazonSQSException e) {
             logger.error("SQS 큐 비우기 실패", e);
         }
     }
@@ -164,20 +160,20 @@ public class AwsSqsMessageQueue implements MessageQueue<NewsMessage> {
     private java.util.Map<String, MessageAttributeValue> createMessageAttributes(NewsMessage message) {
         java.util.Map<String, MessageAttributeValue> attributes = new java.util.HashMap<>();
         
-        attributes.put("newsId", MessageAttributeValue.builder()
-                .dataType("String")
-                .stringValue(message.newsId())
-                .build());
+        MessageAttributeValue newsIdAttr = new MessageAttributeValue()
+                .withDataType("String")
+                .withStringValue(message.newsId());
+        attributes.put("newsId", newsIdAttr);
         
-        attributes.put("messageType", MessageAttributeValue.builder()
-                .dataType("String")
-                .stringValue(message.type().name())
-                .build());
+        MessageAttributeValue typeAttr = new MessageAttributeValue()
+                .withDataType("String")
+                .withStringValue(message.type().name());
+        attributes.put("messageType", typeAttr);
         
-        attributes.put("timestamp", MessageAttributeValue.builder()
-                .dataType("String")
-                .stringValue(message.timestamp().format(TIMESTAMP_FORMATTER))
-                .build());
+        MessageAttributeValue timestampAttr = new MessageAttributeValue()
+                .withDataType("String")
+                .withStringValue(message.timestamp().format(TIMESTAMP_FORMATTER));
+        attributes.put("timestamp", timestampAttr);
         
         return attributes;
     }
@@ -187,9 +183,9 @@ public class AwsSqsMessageQueue implements MessageQueue<NewsMessage> {
      */
     private NewsMessage deserializeMessage(Message sqsMessage) {
         try {
-            return objectMapper.readValue(sqsMessage.body(), NewsMessage.class);
+            return objectMapper.readValue(sqsMessage.getBody(), NewsMessage.class);
         } catch (JsonProcessingException e) {
-            logger.error("메시지 역직렬화 실패: {}", sqsMessage.body(), e);
+            logger.error("메시지 역직렬화 실패: {}", sqsMessage.getBody(), e);
             throw new RuntimeException("메시지 역직렬화 실패", e);
         }
     }
@@ -199,16 +195,15 @@ public class AwsSqsMessageQueue implements MessageQueue<NewsMessage> {
      */
     private void deleteMessage(Message message) {
         try {
-            DeleteMessageRequest deleteRequest = DeleteMessageRequest.builder()
-                    .queueUrl(queueUrl)
-                    .receiptHandle(message.receiptHandle())
-                    .build();
+            DeleteMessageRequest deleteRequest = new DeleteMessageRequest()
+                    .withQueueUrl(queueUrl)
+                    .withReceiptHandle(message.getReceiptHandle());
             
             sqsClient.deleteMessage(deleteRequest);
-            logger.debug("SQS 메시지가 삭제되었습니다: messageId={}", message.messageId());
+            logger.debug("SQS 메시지가 삭제되었습니다: messageId={}", message.getMessageId());
             
-        } catch (SqsException e) {
-            logger.error("SQS 메시지 삭제 실패: messageId={}", message.messageId(), e);
+        } catch (AmazonSQSException e) {
+            logger.error("SQS 메시지 삭제 실패: messageId={}", message.getMessageId(), e);
         }
     }
 }

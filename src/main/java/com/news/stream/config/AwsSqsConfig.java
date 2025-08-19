@@ -1,15 +1,13 @@
 package com.news.stream.config;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.sqs.SqsClient;
-
-import java.net.URI;
 
 /**
  * AWS SQS 설정 클래스
@@ -36,20 +34,22 @@ public class AwsSqsConfig {
      * 로컬 테스트를 위한 endpoint 설정을 지원합니다.
      */
     @Bean
-    public SqsClient sqsClient() {
-        SqsClient.Builder builder = SqsClient.builder()
-                .region(Region.of(region));
+    public AmazonSQS sqsClient() {
+        AmazonSQSClientBuilder builder = AmazonSQSClientBuilder.standard()
+                .withRegion(region);
         
         // 로컬 테스트를 위한 endpoint 설정
         if (endpoint != null && !endpoint.trim().isEmpty()) {
-            builder.endpointOverride(URI.create(endpoint));
+            builder.withEndpointConfiguration(
+                new com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration(endpoint, region)
+            );
         }
         
         // AWS 자격 증명 설정 (로컬 테스트용)
         if (accessKeyId != null && !accessKeyId.trim().isEmpty() &&
             secretAccessKey != null && !secretAccessKey.trim().isEmpty()) {
-            AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
-            builder.credentialsProvider(StaticCredentialsProvider.create(credentials));
+            BasicAWSCredentials credentials = new BasicAWSCredentials(accessKeyId, secretAccessKey);
+            builder.withCredentials(new AWSStaticCredentialsProvider(credentials));
         }
         
         return builder.build();

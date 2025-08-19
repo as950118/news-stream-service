@@ -71,8 +71,8 @@ dependencies {
     testImplementation 'org.jacoco:org.jacoco.ant:0.8.11'
     
     // AWS SDK SQS
-    implementation 'software.amazon.awssdk:sqs:2.24.12'
-    implementation 'software.amazon.awssdk:sts:2.24.12'
+    implementation 'com.amazonaws:aws-java-sdk-sqs:1.12.261'
+    implementation 'com.amazonaws:aws-java-sdk-sts:1.12.261'
 }
 
 tasks.named('test') {

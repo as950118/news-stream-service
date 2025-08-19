@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
 
-//@Component
+@Component
 public class CustomMetrics {
     
     private final MeterRegistry meterRegistry;
