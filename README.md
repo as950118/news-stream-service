@@ -409,3 +409,137 @@ docker-compose -f docker-compose.prod.yml up -d
 - **데이터베이스 인덱싱**: PostgreSQL 인덱스 최적화로 쿼리 성능 향상
 
 ### 🎉 모든 Feature 구현 완료! 🎉
+
+## 🔐 JWT 인증 시스템 구현 가이드
+
+현재 프로젝트에서는 WebSocket 연결 시에만 JWT 토큰 검증이 구현되어 있습니다. REST API에서도 JWT 검증을 구현하려면 다음과 같은 추가 작업이 필요합니다.
+
+### 현재 구현 상태
+- ✅ **WebSocket JWT 검증**: `WebSocketAuthenticationInterceptor`에서 구현됨
+- ❌ **REST API JWT 검증**: 미구현 (모든 API가 `permitAll()`로 설정됨)
+
+### REST API JWT 검증 구현 방법
+
+#### 1. JWT 인증 필터 생성
+
+```java
+@Component
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    
+    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthenticationService authenticationService;
+    
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, 
+                                  HttpServletResponse response, 
+                                  FilterChain filterChain) throws ServletException, IOException {
+        
+        String token = extractTokenFromRequest(request);
+        
+        if (token != null && jwtTokenProvider.validateToken(token)) {
+            Optional<Customer> customer = authenticationService.validateToken(token);
+            if (customer.isPresent()) {
+                // Spring Security 컨텍스트에 인증 정보 설정
+                UsernamePasswordAuthenticationToken authentication = 
+                    new UsernamePasswordAuthenticationToken(
+                        customer.get(), null, Collections.emptyList());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+        }
+        
+        filterChain.doFilter(request, response);
+    }
+    
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
+}
+```
+
+#### 2. SecurityConfig 수정
+
+```java
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+public class SecurityConfig {
+    
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .authorizeHttpRequests(authz -> authz
+                .requestMatchers("/api/v1/customers/auth").permitAll() // 로그인만 허용
+                .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .anyRequest().authenticated() // 나머지는 인증 필요
+            )
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            );
+        
+        return http.build();
+    }
+}
+```
+
+#### 3. 컨트롤러에서 인증 정보 사용
+
+```java
+@RestController
+@RequestMapping("/api/v1/news")
+public class NewsController {
+    
+    @GetMapping
+    public ResponseEntity<PageResponse<NewsDto>> getNews(
+            @AuthenticationPrincipal Customer customer,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        // customer 객체를 통해 인증된 고객사 정보 접근
+        log.info("인증된 고객사: {}", customer.getName());
+        
+        // 뉴스 조회 로직...
+    }
+}
+```
+
+#### 4. 메서드 레벨 보안 설정
+
+```java
+@Service
+public class NewsService {
+    
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public List<NewsDto> getNewsForCustomer(String customerId) {
+        // 고객사별 뉴스 조회 로직
+    }
+    
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteNews(String newsId) {
+        // 관리자만 뉴스 삭제 가능
+    }
+}
+```
+
+### 구현 시 고려사항
+
+1. **토큰 만료 처리**: JWT 토큰 만료 시 자동 갱신 또는 재로그인 요구
+2. **에러 응답**: 인증 실패 시 적절한 HTTP 상태 코드와 에러 메시지 반환
+3. **로깅**: 인증 성공/실패 로그 기록으로 보안 모니터링
+4. **테스트**: JWT 인증이 적용된 API에 대한 테스트 코드 작성
+
+### 보안 강화 방안
+
+1. **토큰 블랙리스트**: 로그아웃된 토큰 관리
+2. **Rate Limiting**: API 호출 횟수 제한
+3. **CORS 설정**: 허용된 도메인에서만 API 호출 가능
+4. **HTTPS 강제**: 프로덕션 환경에서 HTTPS 사용
+
+이 가이드를 따라 구현하면 REST API에서도 JWT 기반 인증을 완벽하게 적용할 수 있습니다.

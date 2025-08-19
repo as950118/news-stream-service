@@ -1,19 +1,18 @@
 package com.news.stream.service;
 
 import com.news.stream.util.Monitored;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-//@Component
-//@Aspect
+@Slf4j
+@Component
+@Aspect
 public class PerformanceMonitor {
     
-    private final Logger logger = LoggerFactory.getLogger(PerformanceMonitor.class);
     private final CustomMetrics customMetrics;
     
     public PerformanceMonitor(CustomMetrics customMetrics) {
@@ -37,9 +36,9 @@ public class PerformanceMonitor {
             
             // 성능 로깅
             if (executionTime > 1000) {
-                logger.warn("성능 경고: {}.{} 실행 시간 {}ms", className, methodName, executionTime);
+                log.warn("성능 경고: {}.{} 실행 시간 {}ms", className, methodName, executionTime);
             } else {
-                logger.debug("성능 정보: {}.{} 실행 시간 {}ms", className, methodName, executionTime);
+                log.debug("성능 정보: {}.{} 실행 시간 {}ms", className, methodName, executionTime);
             }
             
             return result;
@@ -51,7 +50,7 @@ public class PerformanceMonitor {
             // 실패 메트릭 기록
             customMetrics.incrementNewsFailed();
             
-            logger.error("성능 오류: {}.{} 실행 시간 {}ms, 오류: {}", 
+            log.error("성능 오류: {}.{} 실행 시간 {}ms, 오류: {}", 
                 className, methodName, executionTime, e.getMessage());
             
             throw e;
@@ -61,6 +60,8 @@ public class PerformanceMonitor {
     @Scheduled(fixedRate = 60000) // 1분마다 실행
     public void updatePerformanceMetrics() {
         try {
+            log.debug("성능 메트릭 업데이트 시작");
+            
             // 성공률 계산 (예시)
             double successRate = calculateSuccessRate();
             customMetrics.updateSuccessRate(successRate);
@@ -73,8 +74,11 @@ public class PerformanceMonitor {
             double queueDelay = calculateQueueProcessingDelay();
             customMetrics.updateQueueProcessingDelay(queueDelay);
             
+            log.debug("성능 메트릭 업데이트 완료: 성공률={}%, 평균처리시간={}ms, 큐지연={}ms", 
+                     successRate, avgProcessingTime, queueDelay);
+            
         } catch (Exception e) {
-            logger.error("성능 메트릭 업데이트 중 오류 발생", e);
+            log.error("성능 메트릭 업데이트 중 오류 발생", e);
         }
     }
     

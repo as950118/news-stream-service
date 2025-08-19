@@ -2,8 +2,7 @@ package com.news.stream.service;
 
 import com.news.stream.dto.NewsDto;
 import com.news.stream.dto.PageResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -19,11 +18,11 @@ import java.util.Set;
  * 뉴스 캐싱을 위한 서비스 클래스
  * Redis를 활용한 뉴스 데이터 캐싱 전략을 구현합니다.
  */
+@Slf4j
 @Service
 public class NewsCacheService {
     
     private final RedisTemplate<String, Object> redisTemplate;
-    private final Logger logger = LoggerFactory.getLogger(NewsCacheService.class);
     
     private static final String NEWS_CACHE_PREFIX = "news:";
     private static final String NEWS_LIST_CACHE_PREFIX = "news:list:";
@@ -40,14 +39,14 @@ public class NewsCacheService {
         try {
             Object cached = redisTemplate.opsForValue().get(key);
             if (cached instanceof NewsDto) {
-                logger.debug("뉴스 캐시 히트: {}", newsId);
+                log.debug("뉴스 캐시 히트: {}", newsId);
                 return Optional.of((NewsDto) cached);
             }
         } catch (Exception e) {
-            logger.warn("뉴스 캐시 조회 중 오류: {}", newsId, e);
+            log.warn("뉴스 캐시 조회 중 오류: {}", newsId, e);
         }
         
-        logger.debug("뉴스 캐시 미스: {}", newsId);
+        log.debug("뉴스 캐시 미스: {}", newsId);
         return Optional.empty();
     }
     
@@ -56,9 +55,9 @@ public class NewsCacheService {
         String key = NEWS_CACHE_PREFIX + newsDto.id();
         try {
             redisTemplate.opsForValue().set(key, newsDto, NEWS_CACHE_TTL);
-            logger.debug("뉴스 캐시 저장: {}", newsDto.id());
+            log.debug("뉴스 캐시 저장: {}", newsDto.id());
         } catch (Exception e) {
-            logger.warn("뉴스 캐시 저장 중 오류: {}", newsDto.id(), e);
+            log.warn("뉴스 캐시 저장 중 오류: {}", newsDto.id(), e);
         }
     }
     
@@ -67,9 +66,9 @@ public class NewsCacheService {
         String key = NEWS_CACHE_PREFIX + newsId;
         try {
             redisTemplate.delete(key);
-            logger.debug("뉴스 캐시 제거: {}", newsId);
+            log.debug("뉴스 캐시 제거: {}", newsId);
         } catch (Exception e) {
-            logger.warn("뉴스 캐시 제거 중 오류: {}", newsId, e);
+            log.warn("뉴스 캐시 제거 중 오류: {}", newsId, e);
         }
     }
     
@@ -80,14 +79,14 @@ public class NewsCacheService {
         try {
             Object cached = redisTemplate.opsForValue().get(key);
             if (cached instanceof PageResponse) {
-                logger.debug("뉴스 목록 캐시 히트: page={}, size={}", page, size);
+                log.debug("뉴스 목록 캐시 히트: page={}, size={}", page, size);
                 return Optional.of((PageResponse<NewsDto>) cached);
             }
         } catch (Exception e) {
-            logger.warn("뉴스 목록 캐시 조회 중 오류: page={}, size={}", page, size, e);
+            log.warn("뉴스 목록 캐시 조회 중 오류: page={}, size={}", page, size, e);
         }
         
-        logger.debug("뉴스 목록 캐시 미스: page={}, size={}", page, size);
+        log.debug("뉴스 목록 캐시 미스: page={}, size={}", page, size);
         return Optional.empty();
     }
     
@@ -97,9 +96,9 @@ public class NewsCacheService {
         String key = NEWS_LIST_CACHE_PREFIX + page + ":" + size + ":" + sortBy + ":" + direction;
         try {
             redisTemplate.opsForValue().set(key, newsList, NEWS_LIST_CACHE_TTL);
-            logger.debug("뉴스 목록 캐시 저장: page={}, size={}", page, size);
+            log.debug("뉴스 목록 캐시 저장: page={}, size={}", page, size);
         } catch (Exception e) {
-            logger.warn("뉴스 목록 캐시 저장 중 오류: page={}, size={}", page, size, e);
+            log.warn("뉴스 목록 캐시 저장 중 오류: page={}, size={}", page, size, e);
         }
     }
     
@@ -109,22 +108,25 @@ public class NewsCacheService {
             Set<String> keys = redisTemplate.keys(NEWS_CACHE_PREFIX + "*");
             if (keys != null && !keys.isEmpty()) {
                 redisTemplate.delete(keys);
-                logger.info("모든 뉴스 캐시 제거: {}개", keys.size());
+                log.info("모든 뉴스 캐시 제거: {}개", keys.size());
             }
         } catch (Exception e) {
-            logger.warn("모든 뉴스 캐시 제거 중 오류", e);
+            log.warn("모든 뉴스 캐시 제거 중 오류", e);
         }
     }
     
     public void preloadPopularNews(List<String> popularNewsIds) {
-        // 인기 뉴스를 미리 캐시에 로드
-        for (String newsId : popularNewsIds) {
+        log.debug("인기 뉴스 프리로드 시작: {}개", popularNewsIds.size());
+        
+        popularNewsIds.parallelStream().forEach(newsId -> {
             try {
                 // 실제 구현에서는 뉴스 서비스에서 조회하여 캐시
-                logger.debug("인기 뉴스 프리로드: {}", newsId);
+                log.debug("인기 뉴스 프리로드: {}", newsId);
             } catch (Exception e) {
-                logger.warn("인기 뉴스 프리로드 실패: {}", newsId, e);
+                log.warn("인기 뉴스 프리로드 실패: {}", newsId, e);
             }
-        }
+        });
+        
+        log.debug("인기 뉴스 프리로드 완료: {}개", popularNewsIds.size());
     }
 }

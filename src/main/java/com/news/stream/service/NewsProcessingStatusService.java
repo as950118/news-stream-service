@@ -4,8 +4,7 @@ import com.news.stream.model.NewsProcessingStatus;
 import com.news.stream.repository.NewsProcessingStatusRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,13 +18,13 @@ import java.util.Optional;
  * 뉴스 처리 상태 서비스
  * 뉴스의 처리 상태를 관리하고 추적
  */
+@Slf4j
 @Service
 @Transactional
 public class NewsProcessingStatusService {
     
     private final NewsProcessingStatusRepository statusRepository;
     private final ObjectMapper objectMapper;
-    private final Logger logger = LoggerFactory.getLogger(NewsProcessingStatusService.class);
     
     public NewsProcessingStatusService(NewsProcessingStatusRepository statusRepository) {
         this.statusRepository = statusRepository;
@@ -43,39 +42,25 @@ public class NewsProcessingStatusService {
         status.setUpdatedAt(LocalDateTime.now());
         
         statusRepository.save(status);
-        logger.debug("뉴스 처리 상태를 PENDING으로 설정: {}", newsId);
+        log.debug("뉴스 처리 상태를 PENDING으로 설정: {}", newsId);
     }
     
     /**
      * 뉴스를 PROCESSING 상태로 설정
      */
     public void markAsProcessing(String newsId) {
-        Optional<NewsProcessingStatus> statusOpt = statusRepository.findById(newsId);
-        if (statusOpt.isPresent()) {
-            NewsProcessingStatus status = statusOpt.get();
-            status.setStatus(NewsProcessingStatus.ProcessingStatus.PROCESSING);
-            status.setProcessingStartedAt(LocalDateTime.now());
-            status.setUpdatedAt(LocalDateTime.now());
-            
-            statusRepository.save(status);
-            logger.debug("뉴스 처리 상태를 PROCESSING으로 설정: {}", newsId);
-        }
+        updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.PROCESSING, 
+                    status -> status.setProcessingStartedAt(LocalDateTime.now()));
+        log.debug("뉴스 처리 상태를 PROCESSING으로 설정: {}", newsId);
     }
     
     /**
      * 뉴스를 COMPLETED 상태로 설정
      */
     public void markAsCompleted(String newsId) {
-        Optional<NewsProcessingStatus> statusOpt = statusRepository.findById(newsId);
-        if (statusOpt.isPresent()) {
-            NewsProcessingStatus status = statusOpt.get();
-            status.setStatus(NewsProcessingStatus.ProcessingStatus.COMPLETED);
-            status.setProcessingCompletedAt(LocalDateTime.now());
-            status.setUpdatedAt(LocalDateTime.now());
-            
-            statusRepository.save(status);
-            logger.debug("뉴스 처리 상태를 COMPLETED로 설정: {}", newsId);
-        }
+        updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.COMPLETED,
+                    status -> status.setProcessingCompletedAt(LocalDateTime.now()));
+        log.debug("뉴스 처리 상태를 COMPLETED로 설정: {}", newsId);
     }
     
     /**
@@ -83,30 +68,25 @@ public class NewsProcessingStatusService {
      */
     public void markAsFailed(String newsId, String errorMessage, String failureReason, 
                            Map<String, String> failedCustomers, int totalCustomerCount) {
-        Optional<NewsProcessingStatus> statusOpt = statusRepository.findById(newsId);
-        if (statusOpt.isPresent()) {
-            NewsProcessingStatus status = statusOpt.get();
-            status.setStatus(NewsProcessingStatus.ProcessingStatus.FAILED);
+        updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.FAILED, status -> {
             status.setErrorMessage(errorMessage);
             status.setFailureReason(failureReason);
             status.setFailedCustomerCount(failedCustomers.size());
             status.setTotalCustomerCount(totalCustomerCount);
             status.setLastFailureAt(LocalDateTime.now());
-            status.setUpdatedAt(LocalDateTime.now());
             
             // 고객사별 실패 정보를 JSON으로 저장
             try {
                 String affectedCustomersJson = objectMapper.writeValueAsString(failedCustomers);
                 status.setAffectedCustomers(affectedCustomersJson);
             } catch (JsonProcessingException e) {
-                logger.error("고객사별 실패 정보 JSON 변환 실패: {}", newsId, e);
+                log.error("고객사별 실패 정보 JSON 변환 실패: {}", newsId, e);
                 status.setAffectedCustomers("{}");
             }
-            
-            statusRepository.save(status);
-            logger.warn("뉴스 처리 상태를 FAILED로 설정: {} - {} ({}명 실패)", 
-                newsId, failureReason, failedCustomers.size());
-        }
+        });
+        
+        log.warn("뉴스 처리 상태를 FAILED로 설정: {} - {} ({}명 실패)", 
+            newsId, failureReason, failedCustomers.size());
     }
     
     /**
@@ -120,16 +100,22 @@ public class NewsProcessingStatusService {
      * 뉴스 재시도 횟수 증가
      */
     public void incrementRetryCount(String newsId) {
-        Optional<NewsProcessingStatus> statusOpt = statusRepository.findById(newsId);
-        if (statusOpt.isPresent()) {
-            NewsProcessingStatus status = statusOpt.get();
-            status.setRetryCount(status.getRetryCount() + 1);
-            status.setStatus(NewsProcessingStatus.ProcessingStatus.RETRY);
+        updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.RETRY, 
+                    status -> status.setRetryCount(status.getRetryCount() + 1));
+        log.debug("뉴스 재시도 횟수 증가: {}", newsId);
+    }
+    
+    /**
+     * 상태 업데이트를 위한 공통 메서드
+     */
+    private void updateStatus(String newsId, NewsProcessingStatus.ProcessingStatus newStatus, 
+                             StatusUpdater updater) {
+        statusRepository.findById(newsId).ifPresent(status -> {
+            status.setStatus(newStatus);
             status.setUpdatedAt(LocalDateTime.now());
-            
+            updater.update(status);
             statusRepository.save(status);
-            logger.debug("뉴스 재시도 횟수 증가: {} ({}회)", newsId, status.getRetryCount());
-        }
+        });
     }
     
     /**
@@ -140,7 +126,7 @@ public class NewsProcessingStatusService {
         try {
             return statusRepository.findByStatus(NewsProcessingStatus.ProcessingStatus.FAILED);
         } catch (Exception e) {
-            logger.error("실패한 뉴스 조회 중 오류 발생", e);
+            log.error("실패한 뉴스 조회 중 오류 발생", e);
             return new ArrayList<>();
         }
     }
@@ -179,9 +165,9 @@ public class NewsProcessingStatusService {
     public void deleteByNewsId(String newsId) {
         try {
             statusRepository.deleteById(newsId);
-            logger.debug("뉴스 처리 상태 삭제: {}", newsId);
+            log.debug("뉴스 처리 상태 삭제: {}", newsId);
         } catch (Exception e) {
-            logger.error("뉴스 처리 상태 삭제 중 오류 발생: {}", newsId, e);
+            log.error("뉴스 처리 상태 삭제 중 오류 발생: {}", newsId, e);
         }
     }
     
@@ -190,21 +176,16 @@ public class NewsProcessingStatusService {
      */
     public void moveToDeadLetterQueue(String newsId, String failureReason, int retryCount, String errorMessage) {
         try {
-            Optional<NewsProcessingStatus> statusOpt = statusRepository.findById(newsId);
-            if (statusOpt.isPresent()) {
-                NewsProcessingStatus status = statusOpt.get();
-                status.setStatus(NewsProcessingStatus.ProcessingStatus.DEAD_LETTER);
+            updateStatus(newsId, NewsProcessingStatus.ProcessingStatus.DEAD_LETTER, status -> {
                 status.setErrorMessage(errorMessage);
                 status.setFailureReason(failureReason);
                 status.setRetryCount(retryCount);
                 status.setLastFailureAt(LocalDateTime.now());
-                status.setUpdatedAt(LocalDateTime.now());
-                
-                statusRepository.save(status);
-                logger.warn("뉴스가 Dead Letter Queue로 이동됨: {} - {}", newsId, failureReason);
-            }
+            });
+            
+            log.warn("뉴스가 Dead Letter Queue로 이동됨: {} - {}", newsId, failureReason);
         } catch (Exception e) {
-            logger.error("Dead Letter Queue 이동 중 오류 발생: {}", newsId, e);
+            log.error("Dead Letter Queue 이동 중 오류 발생: {}", newsId, e);
         }
     }
     
@@ -238,18 +219,28 @@ public class NewsProcessingStatusService {
      * 고객사별 실패 정보 조회
      */
     public Map<String, String> getFailedCustomerDetails(String newsId) {
-        Optional<NewsProcessingStatus> statusOpt = statusRepository.findById(newsId);
-        if (statusOpt.isPresent() && statusOpt.get().getAffectedCustomers() != null) {
-            try {
-                @SuppressWarnings("unchecked")
-                Map<String, String> failedCustomers = objectMapper.readValue(
-                    statusOpt.get().getAffectedCustomers(), Map.class);
-                return failedCustomers;
-            } catch (Exception e) {
-                logger.error("고객사별 실패 정보 파싱 실패: {}", newsId, e);
-            }
-        }
-        return Map.of();
+        return statusRepository.findById(newsId)
+            .filter(status -> status.getAffectedCustomers() != null)
+            .map(status -> {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Map<String, String> failedCustomers = objectMapper.readValue(
+                        status.getAffectedCustomers(), Map.class);
+                    return failedCustomers;
+                } catch (Exception e) {
+                    log.error("고객사별 실패 정보 파싱 실패: {}", newsId, e);
+                    return Map.<String, String>of();
+                }
+            })
+            .orElse(Map.of());
+    }
+    
+    /**
+     * 상태 업데이트를 위한 함수형 인터페이스
+     */
+    @FunctionalInterface
+    private interface StatusUpdater {
+        void update(NewsProcessingStatus status);
     }
     
     /**

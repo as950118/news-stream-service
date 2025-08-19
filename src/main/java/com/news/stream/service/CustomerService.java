@@ -2,8 +2,7 @@ package com.news.stream.service;
 
 import com.news.stream.model.Customer;
 import com.news.stream.repository.CustomerRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,12 +11,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @Transactional
 public class CustomerService {
     
     private final CustomerRepository customerRepository;
-    private final Logger logger = LoggerFactory.getLogger(CustomerService.class);
     
     public CustomerService(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
@@ -33,7 +32,9 @@ public class CustomerService {
         customer.setCreatedAt(LocalDateTime.now());
         customer.setUpdatedAt(LocalDateTime.now());
         
-        return customerRepository.save(customer);
+        Customer savedCustomer = customerRepository.save(customer);
+        log.info("새 고객사가 생성되었습니다: {} (ID: {})", name, savedCustomer.getId());
+        return savedCustomer;
     }
     
     public Optional<Customer> findById(String id) {
@@ -54,12 +55,7 @@ public class CustomerService {
     
     public boolean isConnectionAvailable(String customerId) {
         Optional<Customer> customer = findById(customerId);
-        if (customer.isEmpty()) {
-            return false;
-        }
-        
-        // 고객사가 이미 연결되어 있으면 false
-        return customer.get().getConnectionId() == null;
+        return customer.isPresent() && customer.get().getConnectionId() == null;
     }
     
     public boolean isConnectionIdAvailable(String connectionId) {
@@ -67,25 +63,27 @@ public class CustomerService {
     }
     
     public Customer updateConnectionId(String customerId, String connectionId) {
-        Optional<Customer> customerOpt = customerRepository.findById(customerId);
-        if (customerOpt.isPresent()) {
-            Customer customer = customerOpt.get();
-            customer.setConnectionId(connectionId);
-            customer.setUpdatedAt(LocalDateTime.now());
-            return customerRepository.save(customer);
-        }
-        throw new RuntimeException("Customer not found with id: " + customerId);
+        Customer customer = findById(customerId)
+            .orElseThrow(() -> new IllegalArgumentException("Customer not found with id: " + customerId));
+        
+        customer.setConnectionId(connectionId);
+        customer.setUpdatedAt(LocalDateTime.now());
+        
+        Customer updatedCustomer = customerRepository.save(customer);
+        log.info("고객사 {}의 연결 ID가 업데이트되었습니다: {}", customerId, connectionId);
+        return updatedCustomer;
     }
     
     public Customer removeConnectionId(String customerId) {
-        Optional<Customer> customerOpt = customerRepository.findById(customerId);
-        if (customerOpt.isPresent()) {
-            Customer customer = customerOpt.get();
-            customer.setConnectionId(null);
-            customer.setUpdatedAt(LocalDateTime.now());
-            return customerRepository.save(customer);
-        }
-        throw new RuntimeException("Customer not found with id: " + customerId);
+        Customer customer = findById(customerId)
+            .orElseThrow(() -> new IllegalArgumentException("Customer not found with id: " + customerId));
+        
+        customer.setConnectionId(null);
+        customer.setUpdatedAt(LocalDateTime.now());
+        
+        Customer updatedCustomer = customerRepository.save(customer);
+        log.info("고객사 {}의 연결 ID가 제거되었습니다", customerId);
+        return updatedCustomer;
     }
     
     /**
@@ -94,14 +92,12 @@ public class CustomerService {
      * @param sessionId WebSocket 세션 ID
      */
     public void removeConnectionIdBySessionId(String sessionId) {
-        Optional<Customer> customerOpt = findByConnectionId(sessionId);
-        if (customerOpt.isPresent()) {
-            Customer customer = customerOpt.get();
+        findByConnectionId(sessionId).ifPresent(customer -> {
             customer.setConnectionId(null);
             customer.setUpdatedAt(LocalDateTime.now());
             customerRepository.save(customer);
-            logger.info("고객사 {}의 연결 정보가 제거되었습니다: {}", customer.getId(), sessionId);
-        }
+            log.info("고객사 {}의 연결 정보가 제거되었습니다: {}", customer.getId(), sessionId);
+        });
     }
     
     public Customer save(Customer customer) {
@@ -114,6 +110,7 @@ public class CustomerService {
     
     public void deleteById(String id) {
         customerRepository.deleteById(id);
+        log.info("고객사가 삭제되었습니다: {}", id);
     }
     
     private String generateToken() {
